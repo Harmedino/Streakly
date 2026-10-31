@@ -30,5 +30,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/settings/settings').then((m) => m.Settings),
     title: 'Your little corner · Streakly',
   },
+  {
+    path: 'todos',
+    loadComponent: () => import('./features/todos/todos').then((m) => m.Todos),
+    title: 'Your to-do list · Streakly',
+  },
   { path: '**', redirectTo: '' },
 ];

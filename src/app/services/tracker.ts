@@ -1,5 +1,5 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { Activity, AppData } from '../models/tracker';
+import { Activity, AppData, Todo } from '../models/tracker';
 import { StorageService, validateData } from './storage';
 import { addDays, dateKey, validDate } from '../core/dates';
 import {
@@ -276,6 +276,55 @@ export class TrackerService {
       for (const [order, item] of group.entries())
         d.activities.find((x) => x.id === item.id)!.order = order;
     });
+  }
+  addTodo(title: string, dueDate = ''): boolean {
+    title = title.trim();
+    if (!title || title.length > 200 || (dueDate && !validDate(dueDate))) return false;
+    const now = new Date().toISOString();
+    const saved = this.update((d) => {
+      d.todos ??= [];
+      d.todos.push({
+        id: crypto.randomUUID(),
+        title,
+        dueDate,
+        done: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+    if (saved) this.notify('Added to your list. One less thing to remember.');
+    return saved;
+  }
+  editTodo(original: Todo, title: string, dueDate = ''): boolean {
+    title = title.trim();
+    if (!title || title.length > 200 || (dueDate && !validDate(dueDate))) return false;
+    const latest = this.data().todos?.find((t) => t.id === original.id);
+    if (!latest || JSON.stringify(latest) !== JSON.stringify(original)) {
+      this.notify('This task changed in another tab. Reopen it before editing.');
+      return false;
+    }
+    return this.update((d) => {
+      const todo = d.todos!.find((t) => t.id === original.id)!;
+      todo.title = title;
+      todo.dueDate = dueDate;
+      todo.updatedAt = new Date().toISOString();
+    });
+  }
+  toggleTodo(id: string): boolean {
+    if (!this.data().todos?.some((t) => t.id === id)) return false;
+    return this.update((d) => {
+      const todo = d.todos!.find((t) => t.id === id)!;
+      todo.done = !todo.done;
+      todo.updatedAt = new Date().toISOString();
+    });
+  }
+  deleteTodo(id: string): boolean {
+    const saved = this.update((d) => (d.todos = (d.todos ?? []).filter((t) => t.id !== id)));
+    if (saved) this.notify('Task removed.');
+    return saved;
+  }
+  clearCompletedTodos(): boolean {
+    return this.update((d) => (d.todos = (d.todos ?? []).filter((t) => !t.done)));
   }
   dailyNote(date: string, note: string) {
     if (validDate(date) && note.length <= 1000)

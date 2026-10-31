@@ -255,3 +255,60 @@ describe('Reviewable record recovery', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe(raw);
   });
 });
+
+describe('Personal to-do list', () => {
+  it('adds, completes, undoes, edits and persists tasks independently of habit history', () => {
+    const t = TestBed.inject(TrackerService);
+    expect(t.addTodo('  Book appointment  ', '2027-01-01')).toBe(true);
+    const task = t.data().todos![0];
+    expect(task.title).toBe('Book appointment');
+    expect(t.toggleTodo(task.id)).toBe(true);
+    expect(t.data().todos![0].done).toBe(true);
+    t.toggleTodo(task.id);
+    expect(t.data().todos![0].done).toBe(false);
+    expect(t.editTodo(t.data().todos![0], 'Call the dentist', '')).toBe(true);
+    expect(new StorageService().load().todos![0].title).toBe('Call the dentist');
+    expect(t.data().activities).toEqual([]);
+    expect(t.data().completions).toEqual([]);
+  });
+  it('rejects empty names, invalid dates and stale edits', () => {
+    const t = TestBed.inject(TrackerService);
+    expect(t.addTodo('  ')).toBe(false);
+    expect(t.addTodo('Task', '2024-02-30')).toBe(false);
+    t.addTodo('Task');
+    const original = structuredClone(t.data().todos![0]);
+    t.toggleTodo(original.id);
+    expect(t.editTodo(original, 'Stale title')).toBe(false);
+    expect(t.data().todos![0].title).toBe('Task');
+  });
+  it('clears only completed tasks and removes a single task', () => {
+    const t = TestBed.inject(TrackerService);
+    t.addTodo('Keep');
+    t.addTodo('Finished');
+    t.toggleTodo(t.data().todos![1].id);
+    t.clearCompletedTodos();
+    expect(t.data().todos!.map((t) => t.title)).toEqual(['Keep']);
+    t.deleteTodo(t.data().todos![0].id);
+    expect(t.data().todos).toEqual([]);
+  });
+  it('validates backups, keeps tasks on round-trip and accepts older data without tasks', () => {
+    const t = TestBed.inject(TrackerService);
+    t.addTodo('Back this up');
+    const data = JSON.parse(JSON.stringify(t.data()));
+    expect(validateData(data)).toEqual(t.data());
+    expect(() => validateData({ ...data, todos: [...data.todos, ...data.todos] })).toThrow('task');
+    expect(() => validateData({ ...data, todos: [{ ...data.todos[0], done: 'yes' }] })).toThrow(
+      'task',
+    );
+    delete data.todos;
+    expect(validateData(data).activities).toEqual([]);
+  });
+  it('keeps tasks unchanged if storage fails', () => {
+    const t = TestBed.inject(TrackerService);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Full');
+    });
+    expect(t.addTodo('Not saved')).toBe(false);
+    expect(t.data().todos).toEqual([]);
+  });
+});

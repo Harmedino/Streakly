@@ -51,6 +51,26 @@ export function validateData(raw: unknown): AppData {
       (Array.isArray(d.reminderLog) && d.reminderLog.every((x) => text(x, 200))),
     'Invalid reminder history.',
   );
+  assert(d.todos === undefined || Array.isArray(d.todos), 'Invalid to-do list.');
+  const todoIds = new Set<string>();
+  for (const todo of d.todos ?? []) {
+    assert(
+      todo &&
+        text(todo.id, 100) &&
+        todo.id &&
+        !todoIds.has(todo.id) &&
+        text(todo.title, 200) &&
+        todo.title.trim() &&
+        typeof todo.done === 'boolean' &&
+        (todo.dueDate === '' || validDate(todo.dueDate)) &&
+        text(todo.createdAt, 50) &&
+        Number.isFinite(Date.parse(todo.createdAt)) &&
+        text(todo.updatedAt, 50) &&
+        Number.isFinite(Date.parse(todo.updatedAt)),
+      'Invalid or duplicate task.',
+    );
+    todoIds.add(todo.id);
+  }
   const ids = new Set<string>();
   for (const a of d.activities) {
     assert(a && text(a.id, 100) && a.id && !ids.has(a.id), 'Invalid or duplicate activity ID.');
@@ -261,6 +281,7 @@ export function recoverRecords(raw: string): {
   data: AppData;
   discardedActivities: number;
   discardedCompletions: number;
+  discardedTodos: number;
 } {
   const source = JSON.parse(raw) as Partial<AppData>;
   if (!source || typeof source !== 'object' || ![1, 2].includes(source.version as number))
@@ -312,5 +333,14 @@ export function recoverRecords(raw: string): {
     );
   if (Array.isArray(source.milestones))
     data.milestones = source.milestones.filter((m) => text(m, 150));
-  return { data: validateData(data), discardedActivities, discardedCompletions };
+  let discardedTodos = 0;
+  for (const todo of Array.isArray(source.todos) ? source.todos : []) {
+    try {
+      validateData({ ...data, todos: [...(data.todos ?? []), todo] });
+      data.todos!.push(todo);
+    } catch {
+      discardedTodos++;
+    }
+  }
+  return { data: validateData(data), discardedActivities, discardedCompletions, discardedTodos };
 }

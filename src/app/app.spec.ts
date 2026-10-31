@@ -25,7 +25,7 @@ describe('Application shell', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.brand').textContent).toContain('streakly');
-    expect(fixture.nativeElement.querySelectorAll('.desktop-nav a')).toHaveLength(4);
+    expect(fixture.nativeElement.querySelectorAll('.desktop-nav a')).toHaveLength(5);
     fixture.componentInstance.toggleTheme();
     fixture.detectChanges();
     expect(document.documentElement.dataset['theme']).toBe('dark');

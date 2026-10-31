@@ -3,6 +3,7 @@ import { ReminderService } from './services/reminders';
 import {
   Component,
   effect,
+  computed,
   inject,
   signal,
   ElementRef,
@@ -22,6 +23,7 @@ import { ActivityForm } from './shared/activity-form';
 })
 export class App {
   tracker = inject(TrackerService);
+  todoCount = computed(() => this.tracker.data().todos?.filter((t) => !t.done).length ?? 0);
   pwa = inject(PwaService);
   reminders = inject(ReminderService);
   create = signal(false);

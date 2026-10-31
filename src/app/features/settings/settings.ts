@@ -186,7 +186,9 @@ import { ConfirmDialog } from '../../shared/dialog';
           pending()!.activities.length +
           ' activities and ' +
           pending()!.completions.length +
-          ' recorded moments. Importing replaces all current data. Export a backup first to keep it.'
+          ' recorded moments and ' +
+          (pending()!.todos?.length ?? 0) +
+          ' tasks. Importing replaces all current data. Export a backup first to keep it.'
         "
         label="Replace with backup"
         (cancel)="pending.set(null)"
@@ -208,7 +210,7 @@ export class Settings {
     try {
       const r = recoverRecords(this.tracker.storage.recovery()!);
       this.recoveryMessage.set(
-        `Recovery found ${r.data.activities.length} valid activities and ${r.data.completions.length} valid completions. It would discard ${r.discardedActivities} invalid activities and ${r.discardedCompletions} invalid completions. Export the original file before confirming.`,
+        `Recovery found ${r.data.activities.length} valid activities and ${r.data.completions.length} valid completions. It would discard ${r.discardedActivities} invalid activities and ${r.discardedCompletions} invalid completions and ${r.discardedTodos} invalid tasks. Export the original file before confirming.`,
       );
       this.pendingRevision = this.tracker.data().revision ?? 0;
       this.pending.set(r.data);

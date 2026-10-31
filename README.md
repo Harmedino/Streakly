@@ -90,3 +90,7 @@ Unreadable original data remains untouched. Export it, then use **Recover valid 
 Production builds use Angular's official service worker, a web app manifest, 192/512 px app icons, and pre-cached application bundles, lazy routes, fonts, and icons. Serve production output over HTTPS or localhost. After the initial successful load/cache, Streakly can reload and navigate offline with its existing LocalStorage data. Development (`npm start`) intentionally does not register the worker.
 
 Settings shows an install button when the browser exposes an install prompt, with manual browser/Safari instructions otherwise. Installation support varies by browser. Updates show a notice and wait for an explicit reload; open forms are not automatically discarded. The service worker does not create a cloud backup or cross-device sync, and browser eviction/clearing storage can still remove local data.
+
+## Personal to-do list
+
+Open **To-do list** in the sidebar (or mobile menu) to add tasks with optional due dates, edit them, complete or undo them, and filter pending/all/done. Removing a task or clearing completed tasks requires confirmation. Tasks persist in the same LocalStorage data, synchronize between tabs, and are included in JSON backups and recovery. Existing version 1/2 backups without tasks still work. To-dos do not affect habit streaks or consistency statistics.

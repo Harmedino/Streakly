@@ -34,9 +34,18 @@ export interface Completion {
   quantity: number;
   note: string;
 }
+export interface Todo {
+  id: string;
+  title: string;
+  done: boolean;
+  dueDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface AppData {
   version: 1 | 2;
   revision?: number;
+  todos?: Todo[];
   dailyNotes?: Record<string, string>;
   reminderLog?: string[];
   preferences: {
@@ -57,6 +66,7 @@ export function emptyData(): AppData {
   return {
     version: 2,
     revision: 0,
+    todos: [],
     dailyNotes: {},
     reminderLog: [],
     preferences: { name: '', theme: 'light', onboarded: false },

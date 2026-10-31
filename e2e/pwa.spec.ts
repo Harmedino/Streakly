@@ -30,4 +30,11 @@ test('production service worker reloads offline, including lazy routes and saved
   await expect(
     page.getByRole('button', { name: 'Undo Code every day', exact: true }),
   ).toBeVisible();
+  await page.getByRole('link', { name: 'To-do list', exact: true }).click();
+  await page.getByLabel('What needs doing?').fill('An offline little task');
+  await page.getByRole('button', { name: 'Add task', exact: true }).click();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(
+    page.getByRole('heading', { name: 'An offline little task', exact: true }),
+  ).toBeVisible();
 });

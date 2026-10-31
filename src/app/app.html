@@ -22,6 +22,12 @@
       ><app-icon name="target" />My activities<span class="nav-counter">{{
         tracker.active().length
       }}</span></a
+    ><a
+      routerLink="/todos"
+      routerLinkActive="active"
+      aria-label="To-do list"
+      (click)="mobile.set(false)"
+      ><app-icon name="check" />To-do list<span class="nav-counter">{{ todoCount() }}</span></a
     ><a routerLink="/calendar" routerLinkActive="active" (click)="mobile.set(false)"
       ><app-icon name="calendar" />Calendar</a
     ><a routerLink="/statistics" routerLinkActive="active" (click)="mobile.set(false)"
