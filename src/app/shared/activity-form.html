@@ -1,0 +1,174 @@
+<app-dialog
+  [title]="activity() ? 'Edit your activity' : 'Plant a new habit'"
+  (close)="close.emit()"
+>
+  <form (ngSubmit)="save()" #form="ngForm">
+    <p class="muted form-intro">Small enough to start. Meaningful enough to keep.</p>
+    <label
+      >Activity name<input
+        autofocus
+        name="name"
+        [(ngModel)]="model.name"
+        required
+        maxlength="100"
+        placeholder="e.g. Read a few pages"
+    /></label>
+    <label
+      >Description <span class="optional">optional</span
+      ><textarea
+        name="description"
+        [(ngModel)]="model.description"
+        maxlength="1000"
+        rows="2"
+        placeholder="What's your why?"
+      ></textarea>
+    </label>
+    <div class="form-grid">
+      <fieldset>
+        <legend>Pick an icon</legend>
+        <div class="choice-grid">
+          @for (emoji of emojis; track emoji) {
+            <button
+              type="button"
+              [class.selected]="model.icon === emoji"
+              (click)="model.icon = emoji"
+              [attr.aria-label]="'Choose ' + emoji"
+              [attr.aria-pressed]="model.icon === emoji"
+            >
+              {{ emoji }}
+            </button>
+          }
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Your color</legend>
+        <div class="color-choices">
+          @for (color of colors; track color) {
+            <button
+              type="button"
+              [style.background]="color"
+              [class.selected]="model.color === color"
+              (click)="model.color = color"
+              [attr.aria-label]="'Choose color ' + color"
+              [attr.aria-pressed]="model.color === color"
+            ></button>
+          }
+        </div>
+      </fieldset>
+    </div>
+    <div class="form-grid">
+      <label
+        >Category<select name="category" [(ngModel)]="model.category">
+          @for (c of tracker.data().categories; track c) {
+            <option>{{ c }}</option>
+          }
+          <option value="__custom">Create a category…</option>
+        </select></label
+      ><label
+        >Start date<input
+          type="date"
+          name="start"
+          [(ngModel)]="model.startDate"
+          required
+          min="1900-01-01"
+          max="2200-12-31"
+      /></label>
+    </div>
+    @if (model.category === '__custom') {
+      <label
+        >New category<input
+          name="custom"
+          [(ngModel)]="customCategory"
+          maxlength="60"
+          required
+          placeholder="Make it yours"
+      /></label>
+    }
+    <label
+      >How often?<select name="frequency" [(ngModel)]="model.frequency">
+        <option value="daily">Daily · a little every day</option>
+        <option value="weekdays">Specific weekdays</option>
+        <option value="weekly">Weekly target</option>
+        <option value="monthly">Monthly target</option>
+        <option value="interval">Every few days</option>
+        <option value="once">One-time goal</option>
+      </select></label
+    >
+    @if (model.frequency === 'weekdays') {
+      <div class="weekday-choices">
+        @for (day of days; track day; let i = $index) {
+          <button
+            type="button"
+            [class.selected]="model.weekdays.includes(i)"
+            (click)="toggleDay(i)"
+            [attr.aria-pressed]="model.weekdays.includes(i)"
+          >
+            {{ day }}
+          </button>
+        }
+      </div>
+    }
+    @if (model.frequency === 'weekly' || model.frequency === 'monthly') {
+      <label
+        >Successful days per {{ model.frequency === 'weekly' ? 'week' : 'month'
+        }}<input
+          type="number"
+          name="periodTarget"
+          [(ngModel)]="model.periodTarget"
+          min="1"
+          [max]="model.frequency === 'weekly' ? 7 : 31"
+          required
+      /></label>
+      <p class="helper">
+        Each day counts once. Streaks count successful
+        {{ model.frequency === 'weekly' ? 'weeks' : 'months' }}.
+      </p>
+    }
+    @if (model.frequency === 'interval') {
+      <label
+        >Repeat every (days)<input
+          type="number"
+          name="interval"
+          [(ngModel)]="model.interval"
+          min="1"
+          max="365"
+          required
+      /></label>
+    }
+    <div class="form-grid">
+      <label
+        >Daily quantity target<input
+          type="number"
+          name="quantity"
+          [(ngModel)]="model.quantityTarget"
+          min="1"
+          max="1000000"
+          required /></label
+      ><label
+        >Unit <span class="optional">optional</span
+        ><input
+          name="unit"
+          [(ngModel)]="model.unit"
+          maxlength="40"
+          placeholder="pages, glasses, minutes…"
+      /></label>
+    </div>
+    <label
+      >Reminder time <span class="optional">optional</span
+      ><input type="time" name="reminder" [(ngModel)]="model.reminder"
+    /></label>
+    <p class="helper">A saved preference for your routine. Browser notifications aren't sent.</p>
+    @if (activity()) {
+      <p class="notice">Schedule and target changes recalculate your existing history.</p>
+    }
+    @if (error) {
+      <p class="error" role="alert">{{ error }}</p>
+    }
+    <div class="form-actions">
+      <button class="btn" type="button" (click)="close.emit()">Cancel</button
+      ><button class="btn primary" type="submit" [disabled]="form.invalid">
+        {{ activity() ? 'Save changes' : 'Create activity' }} <span aria-hidden="true">↗</span>
+      </button>
+    </div>
+  </form></app-dialog
+>
