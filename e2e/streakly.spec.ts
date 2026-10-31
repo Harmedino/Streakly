@@ -7,7 +7,10 @@ async function create(page: Page, name = 'Read a little', quantity = 1) {
   await page.getByRole('button', { name: 'New activity', exact: true }).first().click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Activity name').fill(name);
-  await dialog.getByLabel('Daily quantity target').fill(String(quantity));
+  if (quantity > 1) {
+    await dialog.getByLabel('Progress type', { exact: true }).selectOption('quantity');
+    await dialog.getByLabel('Daily quantity target').fill(String(quantity));
+  }
   await dialog.getByRole('button', { name: /^Create activity/ }).click();
   await expect(dialog).not.toBeVisible();
 }
@@ -19,6 +22,7 @@ test('onboarding, quantity completion, note, persistence and undo', async ({ pag
   await page.getByRole('button', { name: "Let's plant your first habit" }).click();
   const form = page.getByRole('dialog');
   await form.getByLabel('Activity name').fill('Read a little');
+  await form.getByLabel('Progress type', { exact: true }).selectOption('quantity');
   await form.getByLabel('Daily quantity target').fill('20');
   await form.getByLabel('Unit', { exact: false }).fill('pages');
   await form.getByRole('button', { name: /^Create activity/ }).click();

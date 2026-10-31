@@ -1,3 +1,4 @@
+import { DailyNote } from '../../shared/daily-note';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -7,11 +8,11 @@ import { Icon } from '../../shared/icon';
 import { RecordForm } from '../../shared/record-form';
 import { Activity } from '../../models/tracker';
 import { prettyDate, validDate } from '../../core/dates';
-import { dueOn, missedOn } from '../../core/streaks';
+import { calendarStatus, STATUS_LABELS } from '../../core/streaks';
 import { EmptyState } from '../../shared/ui';
 @Component({
   selector: 'app-calendar-page',
-  imports: [FormsModule, RouterLink, Calendar, Icon, RecordForm, EmptyState],
+  imports: [DailyNote, FormsModule, RouterLink, Calendar, Icon, RecordForm, EmptyState],
   template: `<div class="page-heading">
       <div>
         <span class="eyebrow">THE DAYS ADD UP</span>
@@ -42,7 +43,8 @@ import { EmptyState } from '../../shared/ui';
         <div class="calendar-legend">
           <span><i class="complete-dot"></i>Completed</span
           ><span><i class="missed-dot"></i>Missed</span><span><i class="today-dot"></i>Today</span
-          ><span><i class="upcoming-dot"></i>Upcoming</span>
+          ><span><i class="upcoming-dot"></i>Upcoming</span><span>◐ Partial</span><span>— Rest</span
+          ><span>◇ Freeze</span><span>Ⅱ Paused</span>
         </div>
       </section>
       <aside class="panel day-panel">
@@ -67,7 +69,6 @@ import { EmptyState } from '../../shared/ui';
             </div>
             <button
               class="icon-button"
-              [disabled]="selected() > tracker.today()"
               (click)="editing.set(a)"
               [attr.aria-label]="'Edit ' + a.name + ' on selected date'"
             >
@@ -83,6 +84,7 @@ import { EmptyState } from '../../shared/ui';
         <p class="helper">Historical edits update your streaks and insights immediately.</p>
       </aside>
     </div>
+    <app-daily-note [date]="selected()" />
     @if (editing(); as a) {
       <app-record-form [activity]="a" [date]="selected()" (close)="editing.set(null)" />
     }`,
@@ -106,16 +108,8 @@ export class CalendarPage {
       ),
   );
   status(a: Activity) {
-    const d = this.selected();
-    if (this.tracker.completed(a, d)) return 'Completed ✓';
-    if (this.tracker.entry(a, d)) return 'In progress';
-    if (!dueOn({ ...a, archived: false }, this.tracker.data().completions, d))
-      return 'Unscheduled / period target reached';
-    if (d > this.tracker.today()) return 'Upcoming';
-    if (missedOn(a, this.tracker.data().completions, d, this.tracker.today()))
-      return a.frequency === 'weekly' || a.frequency === 'monthly'
-        ? 'Period target missed'
-        : 'Missed';
-    return d === this.tracker.today() ? 'Still time today' : 'Open tracking period';
+    return STATUS_LABELS[
+      calendarStatus(a, this.tracker.data().completions, this.selected(), this.tracker.today())
+    ];
   }
 }

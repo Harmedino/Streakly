@@ -1,4 +1,9 @@
 export type Frequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'interval' | 'once';
+export type ProgressType = 'binary' | 'quantity' | 'duration' | 'amount';
+export interface Pause {
+  start: string;
+  end: string | null;
+}
 export interface Activity {
   id: string;
   name: string;
@@ -16,6 +21,12 @@ export interface Activity {
   reminder: string;
   archived: boolean;
   updatedAt: string;
+  progressType?: ProgressType;
+  restDays?: string[];
+  freezes?: string[];
+  pauses?: Pause[];
+  pinned?: boolean;
+  order?: number;
 }
 export interface Completion {
   activityId: string;
@@ -24,8 +35,17 @@ export interface Completion {
   note: string;
 }
 export interface AppData {
-  version: 1;
-  preferences: { name: string; theme: 'light' | 'dark'; onboarded: boolean };
+  version: 1 | 2;
+  revision?: number;
+  dailyNotes?: Record<string, string>;
+  reminderLog?: string[];
+  preferences: {
+    name: string;
+    theme: 'light' | 'dark';
+    onboarded: boolean;
+    compact?: boolean;
+    remindersEnabled?: boolean;
+  };
   activities: Activity[];
   completions: Completion[];
   categories: string[];
@@ -35,7 +55,10 @@ export const COLORS = ['#57764b', '#8270b2', '#ce8053', '#568b9e', '#c8677c', '#
 export const EMOJIS = ['🌱', '💻', '📖', '🏃', '💧', '🧠', '🎨', '💰', '🧘', '🎸', '✍️', '🌍'];
 export function emptyData(): AppData {
   return {
-    version: 1,
+    version: 2,
+    revision: 0,
+    dailyNotes: {},
+    reminderLog: [],
     preferences: { name: '', theme: 'light', onboarded: false },
     activities: [],
     completions: [],

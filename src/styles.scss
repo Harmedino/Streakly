@@ -2524,3 +2524,527 @@ h2 {
 .activity-info > span {
   overflow-wrap: anywhere;
 }
+
+/* Category controls are visible beside the picker, rather than hidden in its menu. */
+.category-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -8px 0 18px;
+}
+.category-help .helper {
+  margin: 0;
+}
+.category-help .text-button {
+  padding: 7px 10px;
+  background: var(--nav-active);
+  border-radius: 6px;
+}
+.category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  background: var(--hover);
+  color: var(--ink);
+  padding: 10px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.category-tag:hover {
+  border-color: var(--olive);
+  background: var(--nav-active);
+}
+.category-tag app-icon {
+  color: var(--muted);
+}
+.category-edit {
+  background: var(--hover);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.category-edit > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+body.mobile-nav-open,
+body:has(.modal-backdrop) {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  body,
+  .panel,
+  .topbar,
+  .sidebar,
+  .note-panel,
+  input,
+  select,
+  textarea {
+    transition:
+      background-color 220ms ease,
+      border-color 220ms ease,
+      color 180ms ease;
+  }
+  main > router-outlet + * {
+    display: block;
+    animation: page-arrive 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  main > router-outlet + * .panel {
+    animation: panel-arrive 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  main > router-outlet + * .dashboard-aside .panel,
+  main > router-outlet + * aside .panel {
+    animation-delay: 60ms;
+  }
+  .btn,
+  .icon-button,
+  .category-tag,
+  .choice-grid button,
+  .weekday-choices button,
+  .calendar-day {
+    transition:
+      background-color 180ms,
+      border-color 180ms,
+      color 180ms,
+      transform 180ms;
+  }
+  .btn:active,
+  .category-tag:active,
+  .choice-grid button:active,
+  .weekday-choices button:active {
+    transform: scale(0.97);
+  }
+  .activity-row {
+    transition:
+      background-color 220ms,
+      opacity 220ms;
+  }
+  .activity-row.is-complete {
+    background-color: color-mix(in srgb, var(--nav-active) 28%, var(--surface));
+  }
+  .completion-button.checked {
+    animation: completion-bloom 360ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .progress-ring {
+    transition: background-color 250ms;
+  }
+  .week-bar,
+  .trend-chart span {
+    transform-origin: bottom;
+    animation: bar-grow 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .chart-column:nth-child(2) .week-bar {
+    animation-delay: 25ms;
+  }
+  .chart-column:nth-child(3) .week-bar {
+    animation-delay: 50ms;
+  }
+  .chart-column:nth-child(4) .week-bar {
+    animation-delay: 75ms;
+  }
+  .chart-column:nth-child(5) .week-bar {
+    animation-delay: 100ms;
+  }
+  .chart-column:nth-child(6) .week-bar {
+    animation-delay: 125ms;
+  }
+  .chart-column:nth-child(7) .week-bar {
+    animation-delay: 150ms;
+  }
+
+  .leaf-two,
+  .leaf-three {
+    transform-origin: left center;
+    animation-delay: 200ms;
+  }
+  .dialog-enter {
+    animation: overlay-in 260ms ease-out both;
+  }
+  .dialog-enter .modal {
+    animation: modal-arrive 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .dialog-leave {
+    animation: overlay-out 160ms ease-in both;
+    pointer-events: none;
+  }
+  .dialog-leave .modal {
+    animation: modal-depart 160ms ease-in both;
+  }
+}
+@keyframes page-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes panel-arrive {
+  from {
+    opacity: 0.4;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes completion-bloom {
+  0% {
+    transform: scale(0.8);
+    box-shadow: 0 0 0 0 #8eaa6750;
+  }
+  55% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 9px #8eaa6700;
+  }
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes leaf-breathe {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 1px -3px;
+  }
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes overlay-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes modal-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes modal-depart {
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
+}
+@keyframes nav-settle {
+  from {
+    transform: translateY(3px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 800px) {
+  .toast {
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    animation: mobile-toast-in 220ms ease-out;
+  }
+  .btn,
+  .icon-button,
+  .text-button {
+    min-height: 44px;
+  }
+  .icon-button {
+    min-width: 44px;
+  }
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    min-height: 46px;
+  }
+  .toolbar > select {
+    min-height: 46px;
+    font-size: 14px;
+  }
+  .search-input input {
+    font-size: 16px;
+  }
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 12px 8px max(8px, env(safe-area-inset-bottom, 0px));
+  }
+  .modal {
+    max-height: calc(100dvh - 32px);
+    padding: 26px 22px;
+    border-radius: 22px 22px 14px 14px;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: 90px;
+  }
+  .modal .form-actions {
+    position: sticky;
+    bottom: -26px;
+    background: var(--surface);
+    padding: 16px 0 max(16px, env(safe-area-inset-bottom, 0px));
+    margin-top: 22px;
+    z-index: 1;
+  }
+  .form-actions .btn {
+    flex: 1;
+  }
+  .category-help .text-button {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+  .category-help .helper {
+    font-size: 11px;
+  }
+  .category-tag {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .category-edit > div .btn {
+    flex: 1;
+  }
+  .calendar-arrows .icon-button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .activity-row {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .completion-button {
+    width: 44px;
+    height: 44px;
+  }
+  .row-note {
+    min-width: 32px;
+  }
+  .theme-options > button {
+    min-height: 44px;
+  }
+  .weekday-choices {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .weekday-choices button {
+    min-width: 36px;
+    min-height: 44px;
+    padding: 8px;
+  }
+  .choice-grid button {
+    min-height: 40px;
+  }
+}
+@media (max-width: 480px) {
+  .page-heading h1 {
+    font-size: clamp(25px, 7.1vw, 31px);
+  }
+  .page-heading p {
+    font-size: 12px;
+  }
+  .today-banner {
+    grid-template-columns: minmax(0, 1fr) 105px;
+    padding: 24px 18px;
+  }
+  .banner-copy h2 {
+    font-size: clamp(24px, 6.9vw, 31px);
+  }
+  .banner-copy p {
+    font-size: 11px;
+  }
+  .banner-copy .eyebrow {
+    font-size: 8px;
+    line-height: 1.7;
+  }
+  .today-progress > div:last-child strong {
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  .today-progress > div:last-child span {
+    font-size: 9px;
+  }
+  .today-progress .progress-ring span {
+    font-size: 10px;
+  }
+  .stat-strip {
+    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .stat-strip > div {
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 8px;
+  }
+  .stat-strip > div > div > span {
+    font-size: 10px;
+    min-height: 30px;
+  }
+  .stat-strip strong small {
+    font-size: 9px;
+    line-height: 1.6;
+  }
+  .activity-info h3 {
+    font-size: 13px;
+  }
+  .activity-info > span {
+    font-size: 10px;
+  }
+  .activity-row {
+    gap: 8px;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  .tabs {
+    gap: 16px;
+    overflow-x: auto;
+  }
+  .tabs button {
+    font-size: 11px;
+    min-height: 44px;
+  }
+  .section-heading p {
+    font-size: 11px;
+  }
+  .section-heading h2 {
+    font-size: 17px;
+  }
+  .section-heading .text-button {
+    font-size: 11px;
+  }
+  .calendar-grid.large .calendar-day {
+    height: 58px;
+    padding: 6px 4px;
+  }
+  .calendar-day {
+    min-height: 36px;
+  }
+  .calendar-top h3 {
+    font-size: 13px;
+  }
+  .calendar-day span {
+    font-size: 11px;
+  }
+  .full-calendar .calendar-legend {
+    gap: 10px;
+    font-size: 9px;
+  }
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .form-grid:has(fieldset) {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+  .modal label,
+  .modal legend {
+    font-size: 12px;
+  }
+  .helper {
+    font-size: 11px;
+  }
+  .choice-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .color-choices {
+    gap: 14px;
+  }
+  .color-choices button {
+    width: 28px;
+    height: 28px;
+  }
+  .detail-stats > div {
+    padding: 20px 16px;
+  }
+  .detail-stats > div > span {
+    font-size: 12px;
+  }
+  .detail-stats > div > small {
+    font-size: 10px;
+  }
+  .toolbar {
+    flex-wrap: wrap;
+  }
+  .toolbar > select {
+    flex-basis: calc(50% - 6px);
+  }
+  .page-heading > select {
+    font-size: 14px;
+  }
+}
+@keyframes mobile-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+.break-controls { border-top: 1px solid var(--line); padding-top: 8px; margin: 16px 0 24px; }
+.break-buttons, .daily-note-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.break-buttons .btn { font-size: 10px; padding: 9px 12px; }
+.break-date { margin-top: 20px; }
+.break-history { border-top: 1px solid var(--line); padding-top: 16px; }
+.break-history h3 { font-size: 12px; }
+.break-history .text-button { display: flex; }
+.calendar-day.rest-day { background: var(--hover); border-style: dashed; border-color: var(--line-strong); }
+.calendar-day.frozen-day { border: 1px solid var(--olive); background: var(--nav-active); }
+.calendar-day.paused-day { background: repeating-linear-gradient(135deg,var(--hover),var(--hover) 4px,var(--surface) 4px,var(--surface) 8px); }
+.calendar-day.partial:not(.success) { background: var(--nav-active); border-bottom: 2px solid var(--olive); }
+.calendar-day .day-symbol { font-size: 8px; opacity: .8; }
+.card-progress { display: block!important; width: 100%; max-width: 190px; margin-top: 9px; background: var(--hover); height: 4px; border-radius: 4px; overflow: hidden; }
+.card-progress i { display: block; height: 100%; background: var(--activity-color,var(--olive)); border-radius: inherit; transition: width 220ms ease; }
+.progress-remaining { display: block; margin-top: 5px; color: var(--muted); font-size: 9px; }
+.activity-organization { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 16px; padding: 0 20px 10px; border-bottom: 1px solid var(--line); }
+.activity-organization .text-button { font-size: 10px; }
+.compact-toggle { margin-bottom: 15px; }
+.compact-list .activity-row { padding-top: 10px; padding-bottom: 10px; }
+.compact-list .activity-organization { padding-bottom: 5px; }
+.daily-note { margin-top: 24px; }
+.daily-note textarea { margin-bottom: 12px; }
+.daily-note-actions .helper { margin: 0; }
+.weekly-reflection > p { font-size: 12px; color: var(--muted); }
+.update-notice { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; background:var(--nav-active); padding:16px; border:1px solid var(--line); border-radius:10px; margin-bottom:24px; font-size:12px; }
+@media(max-width:600px){.break-buttons .btn {flex:1; font-size:11px;}.activity-organization{justify-content:space-between;gap:8px;}.activity-organization .text-button{min-height:44px}.calendar-legend{flex-wrap:wrap}.day-symbol{line-height:1}.daily-note-actions .btn{width:100%}}

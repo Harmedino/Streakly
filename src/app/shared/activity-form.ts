@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Activity, COLORS, EMOJIS } from '../models/tracker';
 import { dateKey, validDate } from '../core/dates';
 import { TrackerService } from '../services/tracker';
+import { ACTIVITY_TEMPLATES } from '../core/templates';
 import { Dialog } from './dialog';
 @Component({
   selector: 'app-activity-form',
@@ -18,10 +19,14 @@ export class ActivityForm implements OnInit {
   emojis = EMOJIS;
   today = dateKey();
   error = '';
+  initialRevision = 0;
+  templates = ACTIVITY_TEMPLATES;
+  templateKey = '';
   customCategory = '';
   days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   model: Activity = {
     id: crypto.randomUUID(),
+    progressType: 'binary',
     name: '',
     description: '',
     icon: '🌱',
@@ -39,7 +44,25 @@ export class ActivityForm implements OnInit {
     updatedAt: '',
   };
   ngOnInit() {
-    if (this.activity()) this.model = structuredClone(this.activity()!);
+    this.initialRevision = this.tracker.data().revision ?? 0;
+    if (this.activity()) {
+      this.model = structuredClone(this.activity()!);
+      this.model.progressType ??= this.model.quantityTarget > 1 ? 'quantity' : 'binary';
+    }
+  }
+  progressChanged() {
+    if (this.model.progressType === 'duration') this.model.unit = 'minutes';
+    if (this.model.progressType === 'binary') {
+      this.model.quantityTarget = 1;
+      this.model.unit = '';
+    }
+  }
+  applyTemplate(key: string) {
+    const template = this.templates.find((t) => t.key === key);
+    if (template) {
+      Object.assign(this.model, template.values);
+      this.customCategory = '';
+    }
   }
   toggleDay(n: number) {
     this.model.weekdays = this.model.weekdays.includes(n)
@@ -47,6 +70,16 @@ export class ActivityForm implements OnInit {
       : [...this.model.weekdays, n];
   }
   save() {
+    if ((this.tracker.data().revision ?? 0) !== this.initialRevision) {
+      this.error =
+        'Your data changed while this form was open. Close and reopen it to use the latest version.';
+      return;
+    }
+    if (this.model.progressType === 'binary') {
+      this.model.quantityTarget = 1;
+      this.model.unit = '';
+    }
+    if (this.model.progressType === 'duration') this.model.unit = 'minutes';
     const a = {
       ...this.model,
       name: this.model.name.trim(),
@@ -71,7 +104,7 @@ export class ActivityForm implements OnInit {
       return;
     }
     if (
-      a.quantityTarget < 1 ||
+      a.quantityTarget < (a.progressType === 'amount' ? 0.01 : 1) ||
       a.interval < 1 ||
       a.periodTarget < 1 ||
       a.periodTarget > (a.frequency === 'weekly' ? 7 : 31)
@@ -81,13 +114,23 @@ export class ActivityForm implements OnInit {
     }
     if (
       this.activity() &&
+      [
+        ...(this.activity()!.restDays ?? []),
+        ...(this.activity()!.freezes ?? []),
+        ...(this.activity()!.pauses ?? []).map((p) => p.start),
+      ].some((date) => date < a.startDate)
+    ) {
+      this.error = 'Start date cannot move past recorded breaks.';
+      return;
+    }
+    if (
+      this.activity() &&
       this.tracker.data().completions.some((e) => e.activityId === a.id && e.date < a.startDate)
     ) {
       this.error = 'Start date cannot move past existing history.';
       return;
     }
-    this.tracker.saveActivity(a);
-    if (!this.tracker.storage.error()) {
+    if (this.tracker.saveActivity(a)) {
       this.saved.emit();
       this.close.emit();
     }

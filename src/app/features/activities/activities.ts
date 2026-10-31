@@ -38,6 +38,7 @@ import { EmptyState } from '../../shared/ui';
           <option>{{ c }}</option>
         }</select
       ><select aria-label="Sort activities" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+        <option value="custom">My order · pinned first</option>
         <option value="updated">Recently updated</option>
         <option value="name">Name A–Z</option>
         <option value="streak">Current streak</option>
@@ -51,7 +52,10 @@ import { EmptyState } from '../../shared/ui';
         Archived <span>{{ tracker.data().activities.length - tracker.active().length }}</span>
       </button>
     </div>
-    <section class="panel">
+    <button class="text-button compact-toggle" (click)="tracker.update(compactChange)">
+      {{ tracker.data().preferences.compact ? 'Comfortable view' : 'Compact view' }}
+    </button>
+    <section class="panel" [class.compact-list]="tracker.data().preferences.compact">
       @for (a of list(); track a.id) {
         @if (archived()) {
           <div class="activity-row">
@@ -62,7 +66,7 @@ import { EmptyState } from '../../shared/ui';
             ><button class="btn" (click)="tracker.archive(a)">Restore</button>
           </div>
         } @else {
-          <app-activity-card [activity]="a" />
+          <app-activity-card [activity]="a" [organize]="true" [reorder]="sort() === 'custom'" />
         }
       } @empty {
         <app-empty
@@ -85,10 +89,13 @@ import { EmptyState } from '../../shared/ui';
 })
 export class Activities {
   tracker = inject(TrackerService);
+  compactChange = (d: import('../../models/tracker').AppData) => {
+    d.preferences.compact = !d.preferences.compact;
+  };
   create = signal(false);
   search = signal('');
   category = signal('');
-  sort = signal('updated');
+  sort = signal('custom');
   archived = signal(false);
   list = computed(() =>
     this.tracker
@@ -99,14 +106,18 @@ export class Activities {
           (!this.category() || a.category === this.category()) &&
           (a.name + ' ' + a.description).toLowerCase().includes(this.search().toLowerCase()),
       )
-      .sort((a, b) =>
-        this.sort() === 'name'
-          ? a.name.localeCompare(b.name)
-          : this.sort() === 'streak'
-            ? this.tracker.stats(b).current - this.tracker.stats(a).current
-            : this.sort() === 'rate'
-              ? this.tracker.stats(b).rate - this.tracker.stats(a).rate
-              : b.updatedAt.localeCompare(a.updatedAt),
+      .sort(
+        (a, b) =>
+          Number(!!b.pinned) - Number(!!a.pinned) ||
+          (this.sort() === 'custom'
+            ? (a.order ?? 0) - (b.order ?? 0)
+            : this.sort() === 'name'
+              ? a.name.localeCompare(b.name)
+              : this.sort() === 'streak'
+                ? this.tracker.stats(b).current - this.tracker.stats(a).current
+                : this.sort() === 'rate'
+                  ? this.tracker.stats(b).rate - this.tracker.stats(a).rate
+                  : b.updatedAt.localeCompare(a.updatedAt)),
       ),
   );
 }

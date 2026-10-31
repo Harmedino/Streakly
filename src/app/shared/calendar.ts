@@ -10,7 +10,7 @@ import {
   prettyDate,
 } from '../core/dates';
 import { TrackerService } from '../services/tracker';
-import { completeOn, dueOn, missedOn } from '../core/streaks';
+import { calendarStatus, completeOn, dueOn, missedOn, STATUS_LABELS } from '../core/streaks';
 import { Icon } from './icon';
 @Component({
   selector: 'app-calendar',
@@ -35,7 +35,10 @@ import { Icon } from './icon';
           [class.other-month]="d.outside"
           [class.today]="d.date === tracker.today()"
           [class.success]="d.done > 0"
-          [class.partial]="d.done > 0 && d.done < d.due"
+          [class.partial]="d.state === 'partial' || (d.done > 0 && d.done < d.due)"
+          [class.rest-day]="d.state === 'rest'"
+          [class.frozen-day]="d.state === 'frozen'"
+          [class.paused-day]="d.state === 'paused'"
           [class.missed]="d.missed"
           [class.upcoming]="d.date > tracker.today() && d.due > 0"
           [class.selected-day]="d.date === selected()"
@@ -47,23 +50,19 @@ import { Icon } from './icon';
             d.done +
             ' completed, ' +
             d.due +
-            ' scheduled'
+            ' scheduled · ' +
+            d.status
           "
-          [attr.title]="
-            d.done +
-            ' completed · ' +
-            (d.missed
-              ? 'missed'
-              : d.date > tracker.today()
-                ? 'upcoming'
-                : d.due
-                  ? 'scheduled'
-                  : 'unscheduled')
-          "
+          [attr.title]="d.status"
         >
           <span>{{ d.number }}</span>
           @if (large() && d.due) {
             <small>{{ d.done }} / {{ d.due }}</small>
+          }
+          @if (['rest', 'frozen', 'paused'].includes(d.state)) {
+            <small class="day-symbol">{{
+              d.state === 'frozen' ? '◇' : d.state === 'paused' ? 'Ⅱ' : '—'
+            }}</small>
           }
           @if (d.done) {
             <i></i>
@@ -100,7 +99,16 @@ export class Calendar {
       const done = activities.filter((a) =>
         completeOn(a, this.tracker.data().completions, date),
       ).length;
+      const states = activities.map((a) =>
+        calendarStatus(a, this.tracker.data().completions, date, this.tracker.today()),
+      );
+      const state =
+        ['completed', 'partial', 'frozen', 'paused', 'rest', 'missed', 'upcoming', 'pending'].find(
+          (s) => states.includes(s as any),
+        ) ?? 'unscheduled';
       return {
+        state,
+        status: [...new Set(states.map((s) => STATUS_LABELS[s]))].join(', ') || 'Unscheduled',
         date,
         number: parseDate(date).getDate(),
         outside: date.slice(0, 7) !== start.slice(0, 7),

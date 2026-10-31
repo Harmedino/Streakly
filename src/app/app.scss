@@ -51,11 +51,11 @@
   margin: 0 13px 16px;
   font-weight: 650;
 }
-nav {
+.desktop-nav {
   display: grid;
   gap: 6px;
 }
-nav a,
+.desktop-nav a,
 .settings-link {
   display: flex;
   align-items: center;
@@ -67,12 +67,12 @@ nav a,
   border-radius: 8px;
   transition: 0.2s;
 }
-nav a:hover,
+.desktop-nav a:hover,
 .settings-link:hover {
   background: var(--hover);
   color: var(--ink);
 }
-nav a.active {
+.desktop-nav a.active {
   color: var(--ink);
   background: var(--nav-active);
   font-weight: 650;
@@ -372,5 +372,53 @@ main {
   }
   .sidebar.mobile-open {
     visibility: visible;
+  }
+}
+
+@media (max-width: 800px) {
+  .app-content {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .sidebar {
+    width: min(310px, 85vw);
+    padding-top: max(26px, env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transition:
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 280ms;
+  }
+  .sidebar.mobile-open {
+    transition:
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s;
+  }
+  .nav-overlay {
+    animation: overlay-in 200ms ease-out;
+  }
+  .small-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  .mobile-menu {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.sidebar-close {
+  display: none;
+}
+@media (max-width: 800px) {
+  .sidebar-close {
+    display: flex;
+    position: absolute;
+    top: 26px;
+    right: 15px;
   }
 }

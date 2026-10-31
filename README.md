@@ -17,6 +17,7 @@ The development server uses port 4200. For a container, use `npm start -- --host
 npm run build             # strict TypeScript + Angular templates, production bundles
 npm test -- --watch=false # Vitest via Angular's unit-test builder
 npm run test:e2e          # Chromium workflows; start npm start first
+npm run test:pwa          # builds and tests offline production service worker
 npm run format           # readable source formatting
 ```
 
@@ -33,13 +34,13 @@ Browser tests use `/usr/bin/chromium`. Set `CHROMIUM_PATH` to your installed Chr
 - Explore actual weekly/monthly consistency, daily trends, weekday rates, and active days.
 - Export JSON backups, validate and confirm replacement imports, and choose a persistent light/dark theme in Settings.
 
-Reminder times are local preferences only; the application does not send notifications. One-time goals count successful completion without creating recurring streaks. Milestones celebrate 3, 7, 14, 30, 50, 100, and 365 successful consecutive tracking periods.
+Reminder times are opt-in in Settings. While the application is open, it checks due activities every 30 seconds, uses notifications only after permission, and provides an in-app fallback. It does not send backend push messages or promise delivery when closed. One-time goals count successful completion without creating recurring streaks. Milestones celebrate 3, 7, 14, 30, 50, 100, and 365 successful consecutive tracking periods.
 
 ## Privacy and persistence
 
 All data is saved under `streakly.data.v1` in the current browser's LocalStorage. There is no authentication, database, REST API, analytics, or automatic cross-device synchronization. Fonts and icons are bundled locally. Browser data can be removed by clearing site storage or ending a private session; export backups regularly.
 
-Storage errors are shown visibly, and failed writes do not update application state. Unreadable stored data is preserved and protected against automatic overwrites. The backup export includes the original unreadable payload in this recovery case. A validated, explicitly confirmed import can replace it. Storage is intended for a single browser tab; concurrent edits in different tabs are not merged automatically.
+Storage errors are shown visibly, and failed writes do not update application state. Unreadable stored data is preserved and protected against automatic overwrites. The backup export includes the original unreadable payload in this recovery case. A validated, explicitly confirmed import can replace it. Same-origin tabs synchronize through storage events. Each write compares its saved snapshot before updating and increments a revision; stale writes are rejected. Open activity/progress forms detect newer revisions and require reopening before saving. This prevents ordinary stale-tab overwrites; LocalStorage is not a transactional multi-device database.
 
 ## Architecture
 
@@ -54,8 +55,38 @@ Storage errors are shown visibly, and failed writes do not update application st
 
 Date-only values use local `YYYY-MM-DD` keys. Date increments use calendar arithmetic (`setDate`), never 24-hour timestamp increments. UTC is used only to compare already-extracted date parts for DST-independent interval distances. Weeks start on Monday. Weekly/monthly targets count distinct successful days; each day must reach its quantity target. Only scheduled days contribute to daily/weekday/interval streaks. An unfinished current day or period does not break an existing streak. A missed closed period does. The first weekly/monthly period starts at its calendar boundary, but completions before the activity start are excluded. Changes to schedules or quantity targets intentionally recalculate history.
 
-The version 1 validation/migration boundary rejects unsupported versions rather than silently modifying unknown formats. Imports validate dates, frequencies, bounded quantities, IDs, references, duplicate entries, and required fields before data replacement. Completion percentage excludes an unfinished current tracking period; week/month insight percentages show progress toward targets in the overlapping tracking periods. Archived records remain available in activity details and filtered calendars.
+The version 2 validation/migration boundary upgrades version 1 records without deleting history, and rejects unknown formats. The original storage key remains `streakly.data.v1` for compatibility. Imports validate dates, frequencies, bounded quantities, IDs, references, duplicate entries, and required fields before data replacement. Completion percentage excludes an unfinished current tracking period; week/month insight percentages show progress toward targets in the overlapping tracking periods. Archived records remain available in activity details and filtered calendars.
 
 ## Validation
 
 Unit tests cover daily/weekday/interval streaks, missed days, weekly/monthly goals, leap years, year/month boundaries, DST, one-time goals, quantity targets, duplicate prevention, undo, archival, deletion, storage persistence/failure/recovery, and import validation. Browser tests cover the complete interaction flow at desktop and mobile widths.
+
+## Everyday enhancements
+
+The existing colors, typography, sidebar navigation, and card layout are retained. Mobile controls have larger touch targets, 16 px form inputs to avoid keyboard zoom, viewport-fitting dialogs, keyboard-safe drawer focus, and a sticky header. Motion is limited to short, reduced-motion-aware transitions.
+
+### Rest, pause, and freezes
+
+Open an activity's **Rest & streak protection** section, or select a date in its calendar. Planned rest days are excluded; temporary pauses retain a dated history until resumed. A completed day recorded before a pause remains a real completion. Neither rest nor a pause earns streak credit.
+
+A freeze is manual, protects a past missed scheduled date, and is limited to two per activity per calendar month (the month of the protected date). It preserves a run but does not add a success. Future, completed, resting, paused, and already-frozen dates cannot consume a freeze. Used/remaining counts and frozen history are visible. Removing a freeze refunds that date's use and recalculates streaks.
+
+For weekly/monthly activities, rest/pause days reduce available days and targets are capped to the days still available in that period. Fully excluded periods are neutral. Freezes can protect an unsuccessful **closed** tracking period only when real successful days plus frozen days cover the target; protected periods preserve a streak without increasing it. Calendars distinguish successful, partial, missed, rest, frozen, paused, upcoming, and unscheduled days using restrained styling and explicit labels.
+
+### Progress and organization
+
+Activity forms support Yes/No, quantities, durations in minutes, and monetary amounts with your chosen currency unit. Existing quantity history is preserved. Progress is an editable daily total, not an increment: update it throughout the day without duplicate completions. Reaching the target automatically completes that date; the card shows the remaining amount.
+
+Ten optional form templates prefill fields without saving an activity until confirmed. Everything remains editable. Create categories beside the activity picker; rename them in Settings to update assigned activities together. Favorite pins appear first; use **My order** to move activities within their pinned/unpinned group, and optionally choose compact view. Archived items stay hidden by default and retain their restore action.
+
+The Insights page includes a deterministic weekly reflection: real completions, target percentage, successful days, current best streak, most consistent activity, attention list, and an explicitly labelled comparison against the previous full week. Optional daily personal notes appear on Overview and Calendar and travel with backups.
+
+### Recovery and multiple tabs
+
+Unreadable original data remains untouched. Export it, then use **Recover valid records** in Settings to preview valid records and discarded counts. Replacement requires confirmation; no recovery is written automatically. Syntactically broken JSON requires manual repair from the exported original. Failed saves never update reactive state. Valid incoming tab changes update the current view; external deletions or unreadable writes show a clear warning rather than replacing the current data silently.
+
+### Install and offline support
+
+Production builds use Angular's official service worker, a web app manifest, 192/512 px app icons, and pre-cached application bundles, lazy routes, fonts, and icons. Serve production output over HTTPS or localhost. After the initial successful load/cache, Streakly can reload and navigate offline with its existing LocalStorage data. Development (`npm start`) intentionally does not register the worker.
+
+Settings shows an install button when the browser exposes an install prompt, with manual browser/Safari instructions otherwise. Installation support varies by browser. Updates show a notice and wait for an explicit reload; open forms are not automatically discarded. The service worker does not create a cloud backup or cross-device sync, and browser eviction/clearing storage can still remove local data.

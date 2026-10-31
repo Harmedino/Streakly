@@ -1,3 +1,5 @@
+import { FormsModule } from '@angular/forms';
+import { BreakControls } from '../../shared/break-controls';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -14,6 +16,8 @@ import { EmptyState, Progress } from '../../shared/ui';
 @Component({
   selector: 'app-detail',
   imports: [
+    FormsModule,
+    BreakControls,
     RouterLink,
     Icon,
     Heatmap,
@@ -111,6 +115,33 @@ import { EmptyState, Progress } from '../../shared/ui';
             <p class="helper">Select a past or current date to edit your progress.</p>
           </section>
           <section class="panel spaced-panel">
+            <span class="eyebrow">TAKE A BREATHER</span>
+            <h2>Rest & streak protection</h2>
+            <button class="btn" (click)="tracker.pause(a)">{{ pauseLabel() }}</button>
+            <label class="break-date"
+              >Choose a date<input type="date" [(ngModel)]="breakDate" [min]="a.startDate"
+            /></label>
+            <app-break-controls [activity]="a" [date]="breakDate" />
+            <div class="break-history">
+              <h3>Break history</h3>
+              @for (d of a.freezes ?? []; track d) {
+                <button class="text-button" (click)="breakDate = d">
+                  ◇ {{ pretty(d) }} · Freeze
+                </button>
+              }
+              @for (d of a.restDays ?? []; track d) {
+                <button class="text-button" (click)="breakDate = d">
+                  — {{ pretty(d) }} · Planned rest
+                </button>
+              }
+              @for (p of a.pauses ?? []; track p.start) {
+                <p class="helper">
+                  Ⅱ {{ pretty(p.start) }} – {{ p.end ? pretty(p.end) : 'Until resumed' }} · Paused
+                </p>
+              }
+            </div>
+          </section>
+          <section class="panel spaced-panel">
             <span class="eyebrow">THIS MONTH</span>
             <h2>{{ monthCount() }} little wins</h2>
             <app-progress [value]="monthProgress()" />
@@ -177,6 +208,12 @@ import { EmptyState, Progress } from '../../shared/ui';
 })
 export class Detail {
   tracker = inject(TrackerService);
+  breakDate = this.tracker.today();
+  pauseLabel() {
+    return this.activity()?.pauses?.some((p) => p.end === null)
+      ? 'Resume activity'
+      : 'Pause activity';
+  }
   route = inject(ActivatedRoute);
   router = inject(Router);
   params = toSignal(this.route.paramMap);
@@ -218,13 +255,11 @@ export class Detail {
     ),
   );
   selectDate(d: string) {
-    if (d > this.tracker.today()) this.tracker.notify('That little win is still ahead of you.');
-    else if (d < this.activity()!.startDate)
+    if (d < this.activity()!.startDate)
       this.tracker.notify('This is before your activity started.');
     else this.selected.set(d);
   }
   remove() {
-    this.tracker.delete(this.activity()!);
-    this.router.navigateByUrl('/activities');
+    if (this.tracker.delete(this.activity()!)) this.router.navigateByUrl('/activities');
   }
 }

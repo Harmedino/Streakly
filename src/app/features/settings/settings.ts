@@ -1,7 +1,9 @@
+import { PwaService } from '../../services/pwa';
+import { ReminderService } from '../../services/reminders';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TrackerService } from '../../services/tracker';
-import { validateData } from '../../services/storage';
+import { recoverRecords, validateData } from '../../services/storage';
 import { AppData } from '../../models/tracker';
 import { dateKey } from '../../core/dates';
 import { Icon } from '../../shared/icon';
@@ -56,9 +58,33 @@ import { ConfirmDialog } from '../../shared/dialog';
           <h2>Your categories</h2>
           <div class="category-tags">
             @for (c of tracker.data().categories; track c) {
-              <span>{{ c }}</span>
+              <button
+                type="button"
+                class="category-tag"
+                [attr.aria-label]="'Rename category ' + c"
+                (click)="editingCategory = c; categoryName = c"
+              >
+                {{ c }}<app-icon name="more" [size]="14" />
+              </button>
             }
           </div>
+          <p class="helper">
+            Make your own categories below. Tap a category to rename it across your activities.
+          </p>
+          @if (editingCategory) {
+            <form class="category-edit" (ngSubmit)="renameCategory()">
+              <label
+                >Rename {{ editingCategory
+                }}<input name="categoryName" [(ngModel)]="categoryName" maxlength="60" required
+              /></label>
+              <div>
+                <button type="button" class="btn" (click)="editingCategory = ''">Cancel</button
+                ><button class="btn primary" [disabled]="!categoryName.trim()">
+                  Save category
+                </button>
+              </div>
+            </form>
+          }
           <form class="inline-form" (ngSubmit)="addCategory()">
             <label class="sr-only" for="category">New category</label
             ><input
@@ -73,6 +99,39 @@ import { ConfirmDialog } from '../../shared/dialog';
       </div>
       <aside>
         <section class="panel settings-section">
+          <span class="eyebrow">A LITTLE NUDGE</span>
+          <h2>Your reminders</h2>
+          <p class="muted">
+            Set a time inside each activity. Reminders run while Streakly is open. There is no push
+            service, so alerts are not reliable when the app is closed.
+          </p>
+          <p class="helper">
+            Notification permission: {{ reminders.permission() }}. If notifications are blocked or
+            unavailable, reminders appear inside the app.
+          </p>
+          @if (tracker.data().preferences.remindersEnabled) {
+            <button class="btn" (click)="reminders.disable()">Disable reminders</button>
+          } @else {
+            <button class="btn" (click)="reminders.enable()">Enable reminders</button>
+          }
+        </section>
+        <section class="panel settings-section">
+          <span class="eyebrow">ALWAYS CLOSE BY</span>
+          <h2>Take Streakly with you</h2>
+          <p class="muted">
+            Install for a focused, offline experience after the first online load.
+          </p>
+          @if (pwa.installPrompt()) {
+            <button class="btn primary" (click)="pwa.install()">Install Streakly</button>
+          } @else {
+            <p class="helper">
+              Use your browser’s Install option if available. On iPhone or iPad, use Safari → Share
+              → Add to Home Screen. Offline support needs a production build served over HTTPS (or
+              localhost).
+            </p>
+          }
+        </section>
+        <section class="panel settings-section">
           <app-icon name="download" [size]="27" />
           <h2>Your data, in your hands.</h2>
           <p class="muted">
@@ -83,6 +142,16 @@ import { ConfirmDialog } from '../../shared/dialog';
             Clearing browser data removes your history. Export a backup regularly, or move it to
             another browser.
           </p>
+          @if (tracker.storage.recovery()) {
+            <p class="notice">
+              Your original saved data is protected. Export it first. Recovery keeps only records
+              that pass validation, and requires confirmation.
+            </p>
+            <button class="btn full-width" (click)="recover()">Recover valid records</button>
+          }
+          @if (recoveryMessage()) {
+            <p class="notice">{{ recoveryMessage() }}</p>
+          }
           <button class="btn primary full-width" (click)="export()">
             <app-icon name="download" [size]="17" />Export JSON backup</button
           ><label class="btn full-width import-button"
@@ -104,7 +173,7 @@ import { ConfirmDialog } from '../../shared/dialog';
           <p>No feeds. No followers.<br />Just a little space to become.</p>
         </div>
         <p class="helper settings-version">
-          STREAKLY · DATA VERSION 1<br />Small actions. Big consistency.
+          STREAKLY · DATA VERSION 2<br />Small actions. Big consistency.
         </p>
       </aside>
     </div>
@@ -112,6 +181,7 @@ import { ConfirmDialog } from '../../shared/dialog';
       <app-confirm
         title="Restore this chapter?"
         [message]="
+          (recoveryMessage() ? recoveryMessage() + ' ' : '') +
           'This backup contains ' +
           pending()!.activities.length +
           ' activities and ' +
@@ -126,10 +196,28 @@ import { ConfirmDialog } from '../../shared/dialog';
 })
 export class Settings {
   tracker = inject(TrackerService);
+  pwa = inject(PwaService);
+  reminders = inject(ReminderService);
   name = this.tracker.data().preferences.name;
   category = '';
+  editingCategory = '';
+  categoryName = '';
   error = signal('');
+  recoveryMessage = signal('');
+  recover() {
+    try {
+      const r = recoverRecords(this.tracker.storage.recovery()!);
+      this.recoveryMessage.set(
+        `Recovery found ${r.data.activities.length} valid activities and ${r.data.completions.length} valid completions. It would discard ${r.discardedActivities} invalid activities and ${r.discardedCompletions} invalid completions. Export the original file before confirming.`,
+      );
+      this.pendingRevision = this.tracker.data().revision ?? 0;
+      this.pending.set(r.data);
+    } catch (e) {
+      this.error.set(e instanceof Error ? e.message : 'Recovery failed. Export the original data.');
+    }
+  }
   pending = signal<AppData | null>(null);
+  pendingRevision = 0;
   saveName() {
     if (this.name.trim() && this.tracker.update((d) => (d.preferences.name = this.name.trim())))
       this.tracker.notify('Nice to see you, ' + this.name.trim() + '.');
@@ -138,10 +226,11 @@ export class Settings {
     this.tracker.update((d) => (d.preferences.theme = value));
   }
   addCategory() {
-    const c = this.category.trim();
-    if (c && !this.tracker.data().categories.includes(c))
-      this.tracker.update((d) => d.categories.push(c));
-    this.category = '';
+    if (this.tracker.addCategory(this.category)) this.category = '';
+  }
+  renameCategory() {
+    if (this.tracker.renameCategory(this.editingCategory, this.categoryName))
+      this.editingCategory = '';
   }
   export() {
     const blob = new Blob(
@@ -163,13 +252,25 @@ export class Settings {
     if (!file) return;
     try {
       if (file.size > 20 * 1024 * 1024) throw new Error('Choose a backup smaller than 20 MB.');
-      this.pending.set(validateData(JSON.parse(await file.text())));
+      const validated = validateData(JSON.parse(await file.text()));
+      this.pendingRevision = this.tracker.data().revision ?? 0;
+      this.pending.set(validated);
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'This backup could not be read.');
     }
     input.value = '';
   }
   import() {
+    if (
+      (this.tracker.data().revision ?? 0) !== this.pendingRevision ||
+      this.tracker.storage.external()
+    ) {
+      this.pending.set(null);
+      this.error.set(
+        'Your data changed while the import confirmation was open. Select the backup again to confirm against the latest data.',
+      );
+      return;
+    }
     if (this.tracker.import(this.pending())) {
       this.name = this.tracker.data().preferences.name;
       this.pending.set(null);

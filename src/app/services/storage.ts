@@ -9,7 +9,10 @@ const text = (v: unknown, max = 500): v is string => typeof v === 'string' && v.
 export function validateData(raw: unknown): AppData {
   assert(raw && typeof raw === 'object', 'This file does not contain Streakly data.');
   const d = raw as AppData;
-  assert(d.version === 1, 'Unsupported backup version. Export a version 1 Streakly backup.');
+  assert(
+    d.version === 1 || d.version === 2,
+    'Unsupported backup version. Choose a Streakly version 1 or 2 backup.',
+  );
   assert(
     d.preferences &&
       text(d.preferences.name, 80) &&
@@ -22,10 +25,73 @@ export function validateData(raw: unknown): AppData {
     Array.isArray(d.categories) && d.categories.every((c) => text(c, 60) && c.trim()),
     'Invalid categories.',
   );
+  assert(
+    d.revision === undefined || (Number.isSafeInteger(d.revision) && d.revision >= 0),
+    'Invalid data revision.',
+  );
+  assert(
+    d.preferences.compact === undefined || typeof d.preferences.compact === 'boolean',
+    'Invalid compact preference.',
+  );
+  assert(
+    d.preferences.remindersEnabled === undefined ||
+      typeof d.preferences.remindersEnabled === 'boolean',
+    'Invalid reminder preference.',
+  );
+  assert(
+    d.dailyNotes === undefined ||
+      (d.dailyNotes &&
+        typeof d.dailyNotes === 'object' &&
+        !Array.isArray(d.dailyNotes) &&
+        Object.entries(d.dailyNotes).every(([date, note]) => validDate(date) && text(note, 1000))),
+    'Invalid daily notes.',
+  );
+  assert(
+    d.reminderLog === undefined ||
+      (Array.isArray(d.reminderLog) && d.reminderLog.every((x) => text(x, 200))),
+    'Invalid reminder history.',
+  );
   const ids = new Set<string>();
   for (const a of d.activities) {
     assert(a && text(a.id, 100) && a.id && !ids.has(a.id), 'Invalid or duplicate activity ID.');
     ids.add(a.id);
+    assert(
+      a.progressType === undefined ||
+        ['binary', 'quantity', 'duration', 'amount'].includes(a.progressType),
+      'Invalid progress type.',
+    );
+    assert(a.pinned === undefined || typeof a.pinned === 'boolean', 'Invalid pin.');
+    assert(
+      a.order === undefined || (Number.isFinite(a.order) && a.order >= 0),
+      'Invalid activity order.',
+    );
+    for (const list of [a.restDays, a.freezes])
+      assert(
+        list === undefined ||
+          (Array.isArray(list) &&
+            list.every((date) => validDate(date) && date >= a.startDate) &&
+            new Set(list).size === list.length),
+        'Invalid rest or freeze dates.',
+      );
+    const monthly = new Map<string, number>();
+    for (const date of a.freezes ?? []) {
+      assert(date < dateKey(), 'Freezes must protect a past date.');
+      const key = date.slice(0, 7);
+      monthly.set(key, (monthly.get(key) ?? 0) + 1);
+      assert(monthly.get(key)! <= 2, 'Only two freezes per month are allowed.');
+    }
+    assert(
+      a.pauses === undefined ||
+        (Array.isArray(a.pauses) &&
+          a.pauses.every(
+            (p) =>
+              p &&
+              validDate(p.start) &&
+              p.start >= a.startDate &&
+              (p.end === null || (validDate(p.end) && p.end >= p.start)),
+          )),
+      'Invalid pause history.',
+    );
     assert(
       text(a.name, 100) &&
         a.name.trim() &&
@@ -57,7 +123,7 @@ export function validateData(raw: unknown): AppData {
     );
     assert(
       Number.isFinite(a.quantityTarget) &&
-        a.quantityTarget >= 1 &&
+        a.quantityTarget >= (a.progressType === 'amount' ? 0.01 : 1) &&
         a.quantityTarget <= 1000000 &&
         text(a.unit, 40) &&
         text(a.reminder, 5) &&
@@ -95,7 +161,23 @@ export function validateData(raw: unknown): AppData {
     Array.isArray(d.milestones) && d.milestones.every((m) => text(m, 150)),
     'Invalid milestones.',
   );
-  return structuredClone(d);
+  const result = structuredClone(d);
+  if (result.version === 1) {
+    result.version = 2;
+    result.revision = 0;
+    result.dailyNotes = {};
+    result.reminderLog = [];
+    result.activities = result.activities.map((a) => ({
+      ...a,
+      progressType: a.quantityTarget > 1 ? 'quantity' : 'binary',
+      restDays: [],
+      freezes: [],
+      pauses: [],
+      pinned: false,
+      order: 0,
+    }));
+  }
+  return result;
 }
 export function migrateData(raw: unknown): AppData {
   return validateData(raw);
@@ -105,9 +187,38 @@ export class StorageService {
   readonly error = signal('');
   readonly recovery = signal<string | null>(null);
   private readFailed = false;
+  private baseline: string | null = null;
+  readonly external = signal<AppData | null>(null);
+  constructor() {
+    window.addEventListener('storage', this.onStorage);
+  }
+  ngOnDestroy() {
+    window.removeEventListener('storage', this.onStorage);
+  }
+  private onStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY && event.key !== null) return;
+    if (!event.newValue) {
+      this.error.set(
+        'Saved data was removed in another tab. Export your current data before making further changes.',
+      );
+      return;
+    }
+    try {
+      const data = migrateData(JSON.parse(event.newValue));
+      this.baseline = event.newValue;
+      this.readFailed = false;
+      this.error.set('');
+      this.external.set(data);
+    } catch {
+      this.error.set(
+        'Another tab wrote unreadable data. Your current view is preserved. Export a backup before reloading.',
+      );
+    }
+  };
   load(): AppData {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      this.baseline = raw;
       this.recovery.set(raw);
       const data = raw ? migrateData(JSON.parse(raw)) : emptyData();
       this.recovery.set(null);
@@ -123,7 +234,15 @@ export class StorageService {
   save(data: AppData, replaceCorrupt = false): boolean {
     if (this.readFailed && !replaceCorrupt) return false;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (localStorage.getItem(STORAGE_KEY) !== this.baseline) {
+        this.error.set(
+          'Data changed in another tab. Reload to use the latest version; your attempted change was not saved.',
+        );
+        return false;
+      }
+      const raw = JSON.stringify(data);
+      localStorage.setItem(STORAGE_KEY, raw);
+      this.baseline = raw;
       this.readFailed = false;
       this.recovery.set(null);
       this.error.set('');
@@ -135,4 +254,63 @@ export class StorageService {
       return false;
     }
   }
+}
+
+/** Explicit, reviewable salvage: never changes storage and never guesses missing history. */
+export function recoverRecords(raw: string): {
+  data: AppData;
+  discardedActivities: number;
+  discardedCompletions: number;
+} {
+  const source = JSON.parse(raw) as Partial<AppData>;
+  if (!source || typeof source !== 'object' || ![1, 2].includes(source.version as number))
+    throw new Error(
+      'This data cannot be recovered automatically. Export the original file for safekeeping.',
+    );
+  const data = emptyData();
+  try {
+    data.preferences = validateData({
+      ...emptyData(),
+      preferences: source.preferences,
+    }).preferences;
+  } catch {
+    /* Keep safe default preferences. */
+  }
+  if (Array.isArray(source.categories))
+    data.categories = [
+      ...new Set([
+        ...data.categories,
+        ...source.categories.filter((c) => typeof c === 'string' && c.trim() && c.length <= 60),
+      ]),
+    ];
+  const activities = Array.isArray(source.activities) ? source.activities : [];
+  let discardedActivities = 0;
+  for (const activity of activities) {
+    try {
+      validateData({ ...data, activities: [...data.activities, activity] });
+      data.activities.push(activity);
+      if (!data.categories.includes(activity.category)) data.categories.push(activity.category);
+    } catch {
+      discardedActivities++;
+    }
+  }
+  const completions = Array.isArray(source.completions) ? source.completions : [];
+  let discardedCompletions = 0;
+  for (const entry of completions) {
+    try {
+      validateData({ ...data, completions: [...data.completions, entry] });
+      data.completions.push(entry);
+    } catch {
+      discardedCompletions++;
+    }
+  }
+  if (source.dailyNotes && typeof source.dailyNotes === 'object')
+    data.dailyNotes = Object.fromEntries(
+      Object.entries(source.dailyNotes).filter(
+        ([date, note]) => validDate(date) && text(note, 1000),
+      ),
+    );
+  if (Array.isArray(source.milestones))
+    data.milestones = source.milestones.filter((m) => text(m, 150));
+  return { data: validateData(data), discardedActivities, discardedCompletions };
 }

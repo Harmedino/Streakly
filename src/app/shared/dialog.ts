@@ -11,7 +11,12 @@ import { Icon } from './icon';
 @Component({
   selector: 'app-dialog',
   imports: [Icon],
-  template: `<div class="modal-backdrop" (click)="close.emit()">
+  template: `<div
+    class="modal-backdrop"
+    animate.enter="dialog-enter"
+    animate.leave="dialog-leave"
+    (click)="close.emit()"
+  >
     <section
       #panel
       class="modal"

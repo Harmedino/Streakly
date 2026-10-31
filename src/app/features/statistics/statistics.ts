@@ -6,7 +6,7 @@ import { Heatmap } from '../../shared/heatmap';
 import { EmptyState, Progress } from '../../shared/ui';
 import { addDays, monthStart, parseDate, prettyDate, weekStart } from '../../core/dates';
 import { isScheduled } from '../../core/streaks';
-import { dailyCounts, rangeScore } from '../../core/insights';
+import { dailyCounts, rangeScore, weeklyReflection } from '../../core/insights';
 @Component({
   selector: 'app-statistics',
   imports: [RouterLink, Icon, Heatmap, EmptyState, Progress],
@@ -18,6 +18,35 @@ import { dailyCounts, rangeScore } from '../../core/insights';
       </div>
       <span class="pill"><span class="tiny-dot"></span>All time & recent insights</span>
     </div>
+    <section class="panel spaced-panel weekly-reflection">
+      <span class="eyebrow">YOUR WEEKLY REFLECTION</span>
+      <h2>{{ reflection().score }}% of your targets, one small step at a time.</h2>
+      <p>
+        {{ reflection().completed }} activities completed this week ·
+        {{ reflection().days }} successful tracking days · Best current streak:
+        {{ currentBest() }} periods.
+      </p>
+      <p class="helper">
+        Previous full week: {{ reflection().previous }} completions and
+        {{ reflection().previousScore }}% consistency. This week so far:
+        {{ reflection().change >= 0 ? '+' : '' }}{{ reflection().change }} completions compared with
+        that full week.
+      </p>
+      @if (reflection().consistent; as a) {
+        <a class="text-button" [routerLink]="['/activities', a.id]"
+          >Most consistent this week: {{ a.name }} ↗</a
+        >
+      }
+      @if (reflection().attention.length) {
+        <p class="helper">
+          A little attention:
+          @for (a of reflection().attention; track a.id; let last = $last) {
+            <a [routerLink]="['/activities', a.id]">{{ a.name }}</a
+            >{{ last ? '' : ', ' }}
+          }
+        </p>
+      }
+    </section>
     <div class="detail-stats">
       <div>
         <span>This week</span><strong>{{ weekly() }}<small>%</small></strong
@@ -117,6 +146,10 @@ import { dailyCounts, rangeScore } from '../../core/insights';
 })
 export class Statistics {
   tracker = inject(TrackerService);
+  reflection = computed(() => weeklyReflection(this.tracker.data(), this.tracker.today()));
+  currentBest = computed(() =>
+    Math.max(0, ...this.tracker.active().map((a) => this.tracker.stats(a).current)),
+  );
   pretty = prettyDate;
   weekly = computed(() =>
     rangeScore(this.tracker.data(), weekStart(this.tracker.today()), this.tracker.today()),

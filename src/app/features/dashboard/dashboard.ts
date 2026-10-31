@@ -1,3 +1,4 @@
+import { DailyNote } from '../../shared/daily-note';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TrackerService } from '../../services/tracker';
@@ -10,7 +11,7 @@ import { addDays, prettyDate, weekStart } from '../../core/dates';
 import { dailyCounts, rangeScore } from '../../core/insights';
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, Icon, ActivityCard, ActivityForm, Calendar, EmptyState],
+  imports: [DailyNote, RouterLink, Icon, ActivityCard, ActivityForm, Calendar, EmptyState],
   templateUrl: './dashboard.html',
 })
 export class Dashboard {

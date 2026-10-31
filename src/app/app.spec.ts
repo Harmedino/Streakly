@@ -1,3 +1,4 @@
+import { provideServiceWorker } from '@angular/service-worker';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { App } from './app';
@@ -10,7 +11,10 @@ describe('Application shell', () => {
     const d = emptyData();
     d.preferences.onboarded = true;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-    TestBed.configureTestingModule({ imports: [App], providers: [provideRouter([])] });
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [provideRouter([]), provideServiceWorker('ngsw-worker.js', { enabled: false })],
+    });
   });
   afterEach(() => {
     TestBed.resetTestingModule();
@@ -21,7 +25,7 @@ describe('Application shell', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.brand').textContent).toContain('streakly');
-    expect(fixture.nativeElement.querySelectorAll('nav a')).toHaveLength(4);
+    expect(fixture.nativeElement.querySelectorAll('.desktop-nav a')).toHaveLength(4);
     fixture.componentInstance.toggleTheme();
     fixture.detectChanges();
     expect(document.documentElement.dataset['theme']).toBe('dark');

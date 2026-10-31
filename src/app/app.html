@@ -1,14 +1,17 @@
 <a class="skip-link" href="#main">Skip to content</a>
-<aside class="sidebar" [class.mobile-open]="mobile()">
+<aside #sidebar id="personal-sidebar" class="sidebar" [class.mobile-open]="mobile()">
   <a class="brand" routerLink="/" (click)="mobile.set(false)"
     ><span class="brand-mark"><app-icon name="sprout" [size]="26" /></span>streakly<span
       class="brand-period"
       >.</span
     ></a
   >
+  <button class="icon-button sidebar-close" aria-label="Close navigation" (click)="closeMenu()">
+    <app-icon name="x" />
+  </button>
   <p class="brand-caption">SMALL ACTIONS. BIG CONSISTENCY.</p>
   <span class="nav-label">YOUR PERSONAL SPACE</span>
-  <nav aria-label="Main navigation">
+  <nav class="desktop-nav" aria-label="Main navigation">
     <a
       routerLink="/"
       routerLinkActive="active"
@@ -25,7 +28,11 @@
       ><app-icon name="chart" />Insights</a
     >
   </nav>
-  <button class="sidebar-add" (click)="create.set(true); mobile.set(false)">
+  <button
+    class="sidebar-add"
+    aria-label="Create an activity"
+    (click)="create.set(true); mobile.set(false)"
+  >
     <app-icon name="plus" [size]="18" />Create an activity
   </button>
   <div class="sidebar-bottom">
@@ -66,15 +73,18 @@
   </div>
 </aside>
 @if (mobile()) {
-  <button class="nav-overlay" aria-label="Close menu" (click)="mobile.set(false)"></button>
+  <button class="nav-overlay" aria-label="Close menu" (click)="closeMenu()"></button>
 }
-<div class="app-content">
+<div class="app-content" [inert]="mobile()">
   <header class="topbar">
     <div class="breadcrumb">
       <button
         class="icon-button mobile-menu"
+        #menuTrigger
         aria-label="Open navigation"
-        (click)="mobile.set(true)"
+        aria-controls="personal-sidebar"
+        [attr.aria-expanded]="mobile()"
+        (click)="openMenu()"
       >
         <app-icon name="menu" /></button
       ><app-icon name="sprout" [size]="16" /><span>Your personal space</span
@@ -91,6 +101,16 @@
     @if (tracker.storage.error()) {
       <div class="storage-error" role="alert">{{ tracker.storage.error() }}</div>
     }
+    @if (pwa.updateReady()) {
+      <div class="update-notice" role="status">
+        A fresh version is ready. Save any open form, then reload.<button
+          class="btn"
+          (click)="pwa.reload()"
+        >
+          Reload Streakly
+        </button>
+      </div>
+    }
     <router-outlet />
   </main>
   <footer class="app-footer">
@@ -98,6 +118,7 @@
     ><span>Made for a little more you. <app-icon name="sprout" [size]="14" /></span>
   </footer>
 </div>
+
 @if (!tracker.data().preferences.onboarded) {
   <app-onboarding (create)="create.set(true)" />
 }
