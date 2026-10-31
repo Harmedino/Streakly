@@ -27,6 +27,24 @@ export class TrackerService {
   readonly done = computed(() => this.scheduled().filter((a) => this.completed(a)).length);
   private timer?: ReturnType<typeof setTimeout>;
   private dayTimer: ReturnType<typeof setInterval>;
+  private rolloverTimer?: ReturnType<typeof setTimeout>;
+  private onReturn = () => {
+    if (document.visibilityState !== 'hidden') this.refreshToday();
+  };
+  refreshToday() {
+    this.today.set(dateKey());
+    this.scheduleRollover();
+  }
+  private scheduleRollover() {
+    clearTimeout(this.rolloverTimer);
+    const now = new Date(),
+      midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    this.rolloverTimer = setTimeout(
+      () => this.refreshToday(),
+      midnight.getTime() - now.getTime() + 20,
+    );
+  }
   constructor() {
     effect(() => {
       const incoming = this.storage.external();
@@ -35,10 +53,16 @@ export class TrackerService {
         this.storage.external.set(null);
       }
     });
-    this.dayTimer = setInterval(() => this.today.set(dateKey()), 30000);
+    this.dayTimer = setInterval(() => this.refreshToday(), 30000);
+    this.scheduleRollover();
+    window.addEventListener('focus', this.onReturn);
+    document.addEventListener('visibilitychange', this.onReturn);
   }
   ngOnDestroy() {
+    clearTimeout(this.rolloverTimer);
     clearInterval(this.dayTimer);
+    window.removeEventListener('focus', this.onReturn);
+    document.removeEventListener('visibilitychange', this.onReturn);
     clearTimeout(this.timer);
   }
   notify(message: string) {
@@ -120,7 +144,9 @@ export class TrackerService {
     return saved;
   }
   record(a: Activity, date: string, quantity: number, note = '') {
+    this.refreshToday();
     if (
+      !validDate(date) ||
       date > this.today() ||
       date < a.startDate ||
       !Number.isFinite(quantity) ||
@@ -174,12 +200,14 @@ export class TrackerService {
       );
     return true;
   }
-  toggle(a: Activity, date = this.today()) {
-    this.record(
+  toggle(a: Activity, date?: string) {
+    this.refreshToday();
+    const chosen = date ?? this.today();
+    return this.record(
       a,
-      date,
-      this.completed(a, date) ? 0 : a.quantityTarget,
-      this.entry(a, date)?.note ?? '',
+      chosen,
+      this.completed(a, chosen) ? 0 : a.quantityTarget,
+      this.entry(a, chosen)?.note ?? '',
     );
   }
   archive(a: Activity) {

@@ -5,6 +5,7 @@ import { TrackerService } from '../services/tracker';
 import { isPaused, isRest, isFrozen, scheduleLabel } from '../core/streaks';
 import { Icon } from './icon';
 import { StreakCounter } from './ui';
+import { addDays } from '../core/dates';
 import { RecordForm } from './record-form';
 @Component({
   selector: 'app-activity-card',
@@ -61,7 +62,7 @@ import { RecordForm } from './record-form';
       ><app-streak [count]="tracker.stats(activity()).current" /><button
         class="icon-button row-note"
         aria-label="Edit progress and note"
-        (click)="record.set(true)"
+        (click)="openRecord()"
       >
         <app-icon name="more" /></button
       ><button
@@ -75,8 +76,16 @@ import { RecordForm } from './record-form';
         <app-icon name="check" [size]="18" />
       </button>
     </article>
-    @if (organize()) {
-      <div class="activity-organization">
+    <div class="activity-organization">
+      <button
+        type="button"
+        class="text-button"
+        [attr.aria-label]="'Mark a past day for ' + activity().name"
+        (click)="openHistory()"
+      >
+        Mark a past day
+      </button>
+      @if (organize()) {
         <button class="text-button" (click)="tracker.pin(activity())">
           {{ activity().pinned ? 'Unpin favorite' : 'Pin favorite' }}
         </button>
@@ -95,14 +104,10 @@ import { RecordForm } from './record-form';
             ↓ Move down
           </button>
         }
-      </div>
-    }
+      }
+    </div>
     @if (record()) {
-      <app-record-form
-        [activity]="activity()"
-        [date]="tracker.today()"
-        (close)="record.set(false)"
-      />
+      <app-record-form [activity]="activity()" [date]="recordDate()" (close)="record.set(false)" />
     }`,
 })
 export class ActivityCard {
@@ -119,6 +124,17 @@ export class ActivityCard {
   }
   tracker = inject(TrackerService);
   record = signal(false);
+  recordDate = signal(this.tracker.today());
+  openRecord(date?: string) {
+    this.tracker.refreshToday();
+    this.recordDate.set(date ?? this.tracker.today());
+    this.record.set(true);
+  }
+  openHistory() {
+    this.tracker.refreshToday();
+    const yesterday = addDays(this.tracker.today(), -1);
+    this.openRecord(yesterday >= this.activity().startDate ? yesterday : this.tracker.today());
+  }
   schedule = scheduleLabel;
   isDone() {
     return (
@@ -127,6 +143,7 @@ export class ActivityCard {
     );
   }
   complete() {
+    this.tracker.refreshToday();
     if (
       this.activity().frequency === 'once' &&
       this.isDone() &&
@@ -136,7 +153,7 @@ export class ActivityCard {
       return;
     }
     if (this.activity().quantityTarget > 1 && !this.tracker.completed(this.activity()))
-      this.record.set(true);
+      this.openRecord();
     else this.tracker.toggle(this.activity());
   }
 }

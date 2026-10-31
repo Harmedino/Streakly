@@ -94,3 +94,9 @@ Settings shows an install button when the browser exposes an install prompt, wit
 ## Personal to-do list
 
 Open **To-do list** in the sidebar (or mobile menu) to add tasks with optional due dates, edit them, complete or undo them, and filter pending/all/done. Removing a task or clearing completed tasks requires confirmation. Tasks persist in the same LocalStorage data, synchronize between tabs, and are included in JSON backups and recovery. Existing version 1/2 backups without tasks still work. To-dos do not affect habit streaks or consistency statistics.
+
+## Manual check-ins and backdating
+
+Nothing is marked complete just by opening Streakly or waiting. Mark today yourself, or use **Mark a past day** on an activity. The recording dialog includes a date picker plus Today/Yesterday shortcuts; past entries update the selected day’s history and recalculate streaks without completing today. Entries are limited to the activity’s start date through today. Each date has one editable record, so logging it twice never adds another streak day.
+
+A new daily check-in opens at **local midnight**, rather than 24 hours after your last entry. The app schedules that rollover with local calendar arithmetic (including daylight-saving changes), refreshes when a sleeping tab regains focus, and preserves the streak while today is still unfinished.

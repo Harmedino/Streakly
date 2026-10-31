@@ -3048,3 +3048,12 @@ body:has(.modal-backdrop) {
 .weekly-reflection > p { font-size: 12px; color: var(--muted); }
 .update-notice { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; background:var(--nav-active); padding:16px; border:1px solid var(--line); border-radius:10px; margin-bottom:24px; font-size:12px; }
 @media(max-width:600px){.break-buttons .btn {flex:1; font-size:11px;}.activity-organization{justify-content:space-between;gap:8px;}.activity-organization .text-button{min-height:44px}.calendar-legend{flex-wrap:wrap}.day-symbol{line-height:1}.daily-note-actions .btn{width:100%}}
+
+.record-date-shortcuts {
+  display: flex;
+  gap: 8px;
+  margin-top: -4px;
+}
+.record-date-shortcuts .btn {
+  font-size: 11px;
+}
