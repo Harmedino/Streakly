@@ -6,10 +6,11 @@ import { isPaused, isRest, isFrozen, scheduleLabel } from '../core/streaks';
 import { Icon } from './icon';
 import { StreakCounter } from './ui';
 import { addDays } from '../core/dates';
+import { MarkStreak } from './mark-streak';
 import { RecordForm } from './record-form';
 @Component({
   selector: 'app-activity-card',
-  imports: [RouterLink, Icon, StreakCounter, RecordForm],
+  imports: [RouterLink, Icon, StreakCounter, RecordForm, MarkStreak],
   template: `<article
       class="activity-row"
       [class.is-complete]="isDone()"
@@ -65,16 +66,7 @@ import { RecordForm } from './record-form';
         (click)="openRecord()"
       >
         <app-icon name="more" /></button
-      ><button
-        class="completion-button"
-        [class.checked]="isDone()"
-        [attr.aria-label]="(isDone() ? 'Undo ' : 'Complete ') + activity().name"
-        [attr.aria-pressed]="isDone()"
-        [disabled]="activity().startDate > tracker.today() || blocked()"
-        (click)="complete()"
-      >
-        <app-icon name="check" [size]="18" />
-      </button>
+      ><app-mark-streak [activity]="activity()" />
     </article>
     <div class="activity-organization">
       <button
@@ -141,19 +133,5 @@ export class ActivityCard {
       this.tracker.completed(this.activity()) ||
       (this.activity().frequency === 'once' && this.tracker.stats(this.activity()).totalPeriods > 0)
     );
-  }
-  complete() {
-    this.tracker.refreshToday();
-    if (
-      this.activity().frequency === 'once' &&
-      this.isDone() &&
-      !this.tracker.completed(this.activity())
-    ) {
-      this.tracker.toggle(this.activity(), this.tracker.stats(this.activity()).last!);
-      return;
-    }
-    if (this.activity().quantityTarget > 1 && !this.tracker.completed(this.activity()))
-      this.openRecord();
-    else this.tracker.toggle(this.activity());
   }
 }

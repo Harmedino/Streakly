@@ -1,3 +1,4 @@
+import { MarkStreak } from '../../shared/mark-streak';
 import { FormsModule } from '@angular/forms';
 import { BreakControls } from '../../shared/break-controls';
 import { Component, computed, inject, signal } from '@angular/core';
@@ -16,6 +17,7 @@ import { EmptyState, Progress } from '../../shared/ui';
 @Component({
   selector: 'app-detail',
   imports: [
+    MarkStreak,
     FormsModule,
     BreakControls,
     RouterLink,
@@ -47,6 +49,13 @@ import { EmptyState, Progress } from '../../shared/ui';
           Edit activity <app-icon name="up" [size]="16" />
         </button>
       </div>
+      <section class="panel activity-check-in">
+        <div>
+          <h2>Today's check-in</h2>
+          <p>You choose when to mark your activity.</p>
+        </div>
+        <app-mark-streak [activity]="a" />
+      </section>
       <div class="detail-stats">
         <div>
           <span>Current streak</span

@@ -1,0 +1,71 @@
+:host {
+  display: block;
+  max-width: 250px;
+}
+.mark-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+.mark-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mark-streak-button {
+  min-height: 40px;
+  white-space: nowrap;
+  padding: 10px 13px;
+  font-size: 11px;
+}
+.mark-streak-button:disabled {
+  opacity: 1;
+  background: var(--hover);
+  border-color: var(--line-strong);
+  color: var(--muted);
+  transform: none;
+  cursor: not-allowed;
+}
+.mark-streak-button.marked:disabled {
+  background: var(--nav-active);
+  border-color: var(--line);
+  color: var(--olive);
+}
+.mark-reason {
+  max-width: 220px;
+  text-align: right;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.text-button {
+  min-height: 36px;
+  font-size: 11px;
+}
+@media (max-width: 600px) {
+  :host {
+    max-width: none;
+    width: 100%;
+  }
+  .mark-control {
+    align-items: stretch;
+    gap: 7px;
+  }
+  .mark-buttons {
+    justify-content: space-between;
+  }
+  .mark-streak-button {
+    min-height: 44px;
+    min-width: 142px;
+    font-size: 12px;
+  }
+  .mark-reason {
+    max-width: none;
+    text-align: left;
+    font-size: 11px;
+  }
+  .text-button {
+    min-height: 44px;
+  }
+}

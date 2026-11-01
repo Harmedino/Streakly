@@ -49,9 +49,12 @@ export class Dashboard {
   max = computed(() => Math.max(3, ...this.days().map((d) => d.count)));
   list = computed(() =>
     this.tracker
-      .scheduled()
+      .active()
       .filter(
-        (a) => this.filter() === 'all' || (this.filter() === 'done') === this.tracker.completed(a),
+        (a) =>
+          this.filter() === 'all' ||
+          (this.tracker.scheduled().some((s) => s.id === a.id) &&
+            (this.filter() === 'done') === this.tracker.completed(a)),
       ),
   );
   greeting() {

@@ -90,7 +90,7 @@
       </div>
       <div class="tabs">
         <button [class.active]="filter() === 'all'" (click)="filter.set('all')">
-          All activities <span>{{ tracker.scheduled().length }}</span></button
+          All activities <span>{{ tracker.active().length }}</span></button
         ><button [class.active]="filter() === 'pending'" (click)="filter.set('pending')">
           To do <span>{{ tracker.scheduled().length - tracker.done() }}</span></button
         ><button [class.active]="filter() === 'done'" (click)="filter.set('done')">
