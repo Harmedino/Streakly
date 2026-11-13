@@ -75,6 +75,100 @@
     </div>
   </div>
 </section>
+<section class="panel spaced-panel">
+  <span class="eyebrow">WHAT THE NUMBERS MEAN</span>
+  <h2>Your progress, plainly</h2>
+  <p>
+    You earned {{ cash(summary().income) }}, spent {{ cash(summary().expenses) }}, and had a net
+    cash flow of {{ cash(summary().net) }} in this period.
+  </p>
+  @if (categories().length) {
+    <p class="helper">
+      {{ categories()[0].name }} was your largest spending category at
+      {{ cash(categories()[0].amount) }}.
+    </p>
+  }
+  @if (previous().expenses > 0) {
+    <p class="helper">
+      Spending was {{ summary().expenses > previous().expenses ? 'higher' : 'lower' }} by
+      {{ cash(Math.abs(summary().expenses - previous().expenses)) }} compared with the previous full
+      {{ period() }}. Lower spending leaves more cash available; compare the dates above if this
+      period is incomplete.
+    </p>
+  } @else {
+    <p class="helper">
+      There are no recorded expenses in the comparison period, so a percentage trend would be
+      misleading.
+    </p>
+  }
+  <div class="life-stats">
+    <div>
+      <span>Learning notes</span><strong>{{ summary().notesCreated }}</strong
+      ><small
+        >{{ summary().learningDays }} active learning days ·
+        {{ (summary().learningMinutes / 60).toFixed(1) }} recorded hours</small
+      >
+    </div>
+    <div>
+      <span>Active streaks</span><strong>{{ summary().activeStreaks }}</strong
+      ><small
+        >Best {{ summary().longestStreak }} periods · {{ summary().missedDays }} missed scheduled
+        days</small
+      >
+    </div>
+    <div>
+      <span>Automatic check-ins</span><strong>{{ summary().automaticCompletions }}</strong
+      ><small>Derived from matching application records</small>
+    </div>
+    <div>
+      <span>Goals in progress</span><strong>{{ summary().goalsInProgress }}</strong
+      ><small
+        >{{ summary().overdueGoals }} overdue · {{ summary().goalsCompleted }} completed in this
+        period</small
+      >
+    </div>
+  </div>
+  <p class="helper">
+    Topics explored: {{ summary().topics.join(', ') || 'No learning notes recorded yet.' }}
+  </p>
+</section>
+<section class="panel spaced-panel">
+  <h2>Where you're heading</h2>
+  <p class="helper">
+    {{ summary().completedDays }} days contained successful habit completions in this period.
+  </p>
+  @if (summary().learningPeak; as peak) {
+    <p class="helper">
+      Your most active learning day was {{ pretty(peak.date) }} with {{ peak.count }}
+      {{ peak.count === 1 ? 'note' : 'notes' }}.
+    </p>
+  }
+  @for (t of summary().targetProgress; track t.id) {
+    <p class="helper">
+      The monthly {{ t.kind }} {{ t.kind === 'expense' ? 'limit' : 'target'
+      }}{{ t.source ? ' for ' + t.source : '' }} is at
+      {{ Math.round((t.actual / t.amount) * 100) }}% · {{ cash(t.actual) }} of
+      {{ cash(t.amount) }} through {{ pretty(end()) }}.
+    </p>
+  }
+  @for (g of summary().savingsProgress; track g.id) {
+    <p class="helper">
+      {{ g.name }}: {{ g.percent }}% of the savings goal recorded by {{ pretty(end()) }}.
+    </p>
+  }
+  @for (g of summary().upcomingGoals; track g.title) {
+    <p class="helper">Coming up: {{ g.title }} · {{ pretty(g.deadline) }}</p>
+  }
+  @if (
+    !summary().targetProgress.length &&
+    !summary().savingsProgress.length &&
+    !summary().upcomingGoals.length
+  ) {
+    <p class="helper">
+      Add a financial target or goal to see progress and upcoming deadlines here.
+    </p>
+  }
+</section>
 <div class="life-columns">
   <section class="panel spaced-panel">
     <h2>Biggest spending categories</h2>

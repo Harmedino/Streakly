@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: 'pwa.spec.ts',
+  testIgnore: ['pwa.spec.ts', 'backend.spec.ts'],
   fullyParallel: false,
   workers: 1,
   timeout: 30000,

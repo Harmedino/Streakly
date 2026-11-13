@@ -1,3 +1,5 @@
+import { LearningEditor } from '../../shared/learning-editor';
+import { Markdown } from '../../shared/markdown';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -21,6 +23,8 @@ const f = (
 @Component({
   selector: 'app-records',
   imports: [
+    LearningEditor,
+    Markdown,
     FormsModule,
     RouterLink,
     EntryForm,
@@ -59,6 +63,8 @@ export class Records {
   goalCount(status: string) {
     return this.life.data().goals.filter((g) => g.status === status).length;
   }
+  noteEditing = signal<LearningEntry | null | undefined>(undefined);
+  noteSort = signal('newest');
   search = signal('');
   filter = signal(this.route.snapshot.queryParamMap.get('category') ?? '');
   dateFilter = signal('');
@@ -75,13 +81,19 @@ export class Records {
       .data()
       .learning.filter(
         (e) =>
-          (!this.filter() || e.category === this.filter()) &&
+          (!this.filter() || e.category === this.filter() || e.tags?.includes(this.filter())) &&
           (!this.dateFilter() || e.date === this.dateFilter()) &&
-          (e.topic + ' ' + e.description + ' ' + e.notes)
+          (e.topic + ' ' + e.description + ' ' + e.notes + ' ' + (e.tags ?? []).join(' '))
             .toLowerCase()
             .includes(this.search().toLowerCase()),
       )
-      .sort((a, b) => b.date.localeCompare(a.date)),
+      .sort(
+        (a, b) =>
+          Number(!!b.pinned) - Number(!!a.pinned) ||
+          (this.noteSort() === 'oldest'
+            ? a.date.localeCompare(b.date)
+            : b.date.localeCompare(a.date)),
+      ),
   );
   jobs = computed(() =>
     this.life
@@ -103,6 +115,7 @@ export class Records {
           (!this.filter() ||
             (this.filter() === 'overdue' &&
               g.status !== 'completed' &&
+              !!g.deadline &&
               g.deadline < this.tracker.today()) ||
             g.status === this.filter()) &&
           (g.title + ' ' + g.description).toLowerCase().includes(this.search().toLowerCase()),
@@ -134,7 +147,7 @@ export class Records {
       .sort((a, b) => b.date.localeCompare(a.date)),
   );
   learningCategories = computed(() => [
-    ...new Set(this.life.data().learning.map((e) => e.category)),
+    ...new Set(this.life.data().learning.flatMap((e) => [e.category, ...(e.tags ?? [])])),
   ]);
   recordDates = computed(() =>
     (this.kind === 'learning' ? this.life.data().learning : this.life.data().journal).map(
@@ -196,7 +209,14 @@ export class Records {
   goalSavings(id: string) {
     return savingsProgress(this.life.data(), id, this.tracker.today());
   }
+  pinNote(entry: LearningEntry) {
+    this.life.saveLearning({ ...entry, pinned: !entry.pinned });
+  }
   open(record?: LearningEntry | JobApplication | Goal | JournalEntry) {
+    if (this.kind === 'learning') {
+      this.noteEditing.set((record as LearningEntry) ?? null);
+      return;
+    }
     this.life.error.set('');
     let fields: FormField[] = [];
     const values: FormValues = {};
@@ -207,37 +227,6 @@ export class Records {
       this.dateFilter() && this.dateFilter() <= this.tracker.today()
         ? this.dateFilter()
         : this.tracker.today();
-    if (this.kind === 'learning') {
-      values['category'] ??= 'Learning';
-      values['activityId'] ??= '';
-      fields = [
-        f('topic', 'Learning topic', 'text', true, { maxLength: 200 }),
-        f('description', 'What I learned', 'textarea', true),
-        f('category', 'Learning category', 'text', true, { maxLength: 60 }),
-        f('minutes', 'Time spent (minutes)', 'number', true, { min: 1, max: 1440, step: 1 }),
-        f('date', 'Learning date', 'date', true, { max: this.tracker.today() }),
-        f('resources', 'Resource links', 'textarea', false, {
-          maxLength: 4000,
-          hint: 'HTTP or HTTPS links, separated by spaces or new lines.',
-        }),
-        f('notes', 'Notes', 'textarea', false),
-        f('next', 'What I want to learn next', 'textarea', false, { maxLength: 1000 }),
-        f('activityId', 'Contribute to an existing streak', 'select', false, {
-          hint: 'Duration streaks receive your minutes. Yes/No streaks receive one completion per day. Multiple entries never create duplicate completion records.',
-          options: [
-            { value: '', label: 'Do not link a streak' },
-            ...this.tracker
-              .active()
-              .filter(
-                (a) =>
-                  a.frequency !== 'once' &&
-                  (a.progressType === 'duration' || a.quantityTarget === 1),
-              )
-              .map((a) => ({ value: a.id, label: a.name })),
-          ],
-        }),
-      ];
-    }
     if (this.kind === 'jobs') {
       values['status'] ??= 'Applied';
       fields = [
@@ -325,6 +314,18 @@ export class Records {
         }),
       ];
     }
+    if (this.kind === 'jobs')
+      fields = fields.map((f) => ({
+        ...f,
+        advanced: !['company', 'position'].includes(f.key),
+        required: ['company', 'position'].includes(f.key),
+      }));
+    if (this.kind === 'goals')
+      fields = fields.map((f) => ({
+        ...f,
+        advanced: f.key !== 'title',
+        required: f.key === 'title',
+      }));
     this.editor.set({
       id: record?.id ?? crypto.randomUUID(),
       title:
@@ -340,7 +341,7 @@ export class Records {
       revision: this.tracker.data().revision ?? 0,
     });
   }
-  save(v: FormValues) {
+  async save(v: FormValues) {
     const e = this.editor()!;
     if (e.revision !== (this.tracker.data().revision ?? 0)) {
       this.life.error.set('Data changed while this form was open. Close and reopen it.');
@@ -418,14 +419,14 @@ export class Records {
         updatedOn: this.tracker.today(),
       });
     }
-    if (saved) this.editor.set(null);
+    if (saved && (await this.tracker.settled())) this.editor.set(null);
   }
   ask(id: string, title: string) {
     this.deleting.set({ id, title });
   }
-  remove() {
+  async remove() {
     const d = this.deleting()!;
     const section = this.kind === 'journal' ? 'journal' : this.kind;
-    if (this.life.remove(section, d.id)) this.deleting.set(null);
+    if (this.life.remove(section, d.id) && (await this.tracker.settled())) this.deleting.set(null);
   }
 }

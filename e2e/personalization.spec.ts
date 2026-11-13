@@ -13,6 +13,7 @@ test('create, choose, persist and rename a personal category on mobile', async (
     .click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Activity name').fill('Make something meaningful');
+  await dialog.locator('details.activity-more > summary').click();
   await dialog.getByRole('button', { name: '+ New category', exact: true }).click();
   await dialog.getByLabel('New category', { exact: true }).fill('  Creative time  ');
   await dialog.getByRole('button', { name: 'Create activity', exact: true }).click();
@@ -37,6 +38,7 @@ test('create, choose, persist and rename a personal category on mobile', async (
   );
   await page.getByRole('link', { name: /Make something meaningful/ }).click();
   await page.getByRole('button', { name: 'Edit activity' }).click();
+  await dialog.locator('details.activity-more > summary').click();
   await expect(dialog.getByRole('combobox', { name: 'Category', exact: true })).toHaveValue(
     'My creative space',
   );

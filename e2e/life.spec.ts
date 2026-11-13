@@ -13,6 +13,7 @@ async function account(page: Page, name: string, balance: string, type = 'bank')
   await page.getByRole('button', { name: 'Add account', exact: true }).click();
   const d = page.getByRole('dialog');
   await d.getByLabel('Account name', { exact: true }).fill(name);
+  await d.getByRole('button', { name: 'More Options', exact: true }).click();
   await d.getByRole('combobox', { name: 'Account type', exact: true }).selectOption(type);
   await d.getByLabel('Opening balance (₦)', { exact: false }).fill(balance);
   await save(page);
@@ -28,6 +29,7 @@ test('finance tracks opening balances, income, expenses, transfers and savings w
   let d = page.getByRole('dialog');
   await d.getByLabel('Amount (₦)', { exact: true }).fill('50000');
   await d.getByLabel('Income source', { exact: true }).fill('Salary employer');
+  await d.getByRole('button', { name: 'More Options', exact: true }).click();
   await d
     .getByRole('combobox', { name: 'Payment account', exact: true })
     .selectOption({ label: 'Main bank' });
@@ -36,6 +38,7 @@ test('finance tracks opening balances, income, expenses, transfers and savings w
   d = page.getByRole('dialog');
   await d.getByLabel('Amount (₦)', { exact: true }).fill('10000');
   await d.getByLabel('Category', { exact: true }).fill('Food');
+  await d.getByRole('button', { name: 'More Options', exact: true }).click();
   await d
     .getByRole('combobox', { name: 'Payment account', exact: true })
     .selectOption({ label: 'Main bank' });
@@ -60,6 +63,7 @@ test('finance tracks opening balances, income, expenses, transfers and savings w
   d = page.getByRole('dialog');
   await d.getByLabel('Savings goal name', { exact: true }).fill('Laptop');
   await d.getByLabel('Target amount (₦)', { exact: true }).fill('50000');
+  await d.getByRole('button', { name: 'More Options', exact: true }).click();
   await d.getByLabel('Target date', { exact: true }).fill('2027-12-01');
   await save(page);
   await page.getByRole('button', { name: 'Add / withdraw', exact: true }).click();
@@ -146,21 +150,22 @@ test('learning, applications, goals, reflection, planner and combined reports pe
   await start(page, '/activities');
   await page.getByRole('button', { name: 'New activity', exact: true }).first().click();
   let d = page.getByRole('dialog');
+  await d.locator('details.activity-more > summary').click();
   await d.getByLabel('Activity template', { exact: true }).selectOption('study');
   await d.getByRole('button', { name: 'Create activity', exact: true }).click();
   await expect(d).not.toBeVisible();
   await page.goto('/learning');
-  await page.getByRole('button', { name: 'Add entry', exact: true }).click();
+  await page.getByRole('button', { name: 'New note', exact: true }).click();
   d = page.getByRole('dialog');
-  await d.getByLabel('Learning topic', { exact: true }).fill('Angular signals');
-  await d
-    .getByLabel('What I learned', { exact: true })
-    .fill('Derived state with computed signals.');
+  await d.getByLabel('Note title', { exact: true }).fill('Angular signals');
+  await d.getByLabel('Note content', { exact: true }).fill('Derived state with computed signals.');
+  await d.getByText('More Options', { exact: true }).click();
   await d.getByLabel('Time spent (minutes)', { exact: true }).fill('60');
   await d
-    .getByRole('combobox', { name: 'Contribute to an existing streak', exact: false })
+    .getByRole('combobox', { name: 'Related streak', exact: false })
     .selectOption({ label: 'Study for one hour' });
-  await save(page);
+  await d.getByRole('button', { name: 'Save note', exact: true }).click();
+  await expect(d).not.toBeVisible();
   expect(
     await page.evaluate(
       () => JSON.parse(localStorage.getItem('streakly.data.v1')!).completions.length,
@@ -171,6 +176,7 @@ test('learning, applications, goals, reflection, planner and combined reports pe
   d = page.getByRole('dialog');
   await d.getByLabel('Company name', { exact: true }).fill('Acme');
   await d.getByLabel('Job position', { exact: true }).fill('Frontend developer');
+  await d.getByRole('button', { name: 'More Options', exact: true }).click();
   await d
     .getByRole('combobox', { name: 'Application status', exact: true })
     .selectOption('Interview');
@@ -187,6 +193,7 @@ test('learning, applications, goals, reflection, planner and combined reports pe
   await page.getByRole('button', { name: 'Add goal', exact: true }).click();
   d = page.getByRole('dialog');
   await d.getByLabel('Goal title', { exact: true }).fill('Build my skills');
+  await d.getByRole('button', { name: 'More Options', exact: true }).click();
   await d.getByLabel('Deadline', { exact: true }).fill('2027-01-01');
   await d
     .getByLabel('Milestones · one per line', { exact: false })

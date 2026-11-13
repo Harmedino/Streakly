@@ -1,0 +1,11 @@
+# Development database. Keep MongoDB bound to loopback; use authenticated MongoDB for production.
+services:
+  mongo:
+    image: mongo:8
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - streakly-mongo:/data/db
+    restart: unless-stopped
+volumes:
+  streakly-mongo:

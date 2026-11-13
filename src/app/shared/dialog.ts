@@ -1,3 +1,5 @@
+import { FormsModule } from '@angular/forms';
+import { ApiService } from '../services/api';
 import {
   AfterViewInit,
   Component,
@@ -6,6 +8,7 @@ import {
   input,
   output,
   viewChild,
+  inject,
 } from '@angular/core';
 import { Icon } from './icon';
 @Component({
@@ -15,7 +18,7 @@ import { Icon } from './icon';
     class="modal-backdrop"
     animate.enter="dialog-enter"
     animate.leave="dialog-leave"
-    (click)="close.emit()"
+    (click)="requestClose()"
   >
     <section
       #panel
@@ -31,7 +34,7 @@ import { Icon } from './icon';
           <span class="eyebrow">A LITTLE INTENTION</span>
           <h2>{{ title() }}</h2>
         </div>
-        <button class="icon-button" aria-label="Close dialog" (click)="close.emit()">
+        <button class="icon-button" aria-label="Close dialog" (click)="requestClose()">
           <app-icon name="x" />
         </button>
       </div>
@@ -40,6 +43,10 @@ import { Icon } from './icon';
   </div>`,
 })
 export class Dialog implements AfterViewInit {
+  api = inject(ApiService);
+  requestClose() {
+    if (!this.api.busy()) this.close.emit();
+  }
   title = input('');
   close = output<void>();
   panel = viewChild.required<ElementRef<HTMLElement>>('panel');
@@ -51,7 +58,7 @@ export class Dialog implements AfterViewInit {
     this.previous?.focus();
   }
   @HostListener('document:keydown', ['$event']) key(e: KeyboardEvent) {
-    if (e.key === 'Escape') this.close.emit();
+    if (e.key === 'Escape') this.requestClose();
     if (e.key === 'Tab') {
       const els = Array.from(
         this.panel().nativeElement.querySelectorAll<HTMLElement>(
@@ -82,12 +89,32 @@ export class Dialog implements AfterViewInit {
 }
 @Component({
   selector: 'app-confirm',
-  imports: [Dialog],
+  imports: [Dialog, FormsModule],
   template: `<app-dialog [title]="title()" (close)="cancel.emit()"
     ><p class="muted">{{ message() }}</p>
+    @if (requireWord()) {
+      <label
+        >Type {{ requireWord() }} to confirm<input
+          aria-label="Reset confirmation"
+          [(ngModel)]="typed"
+          autocomplete="off"
+      /></label>
+    }
+    @if (api.error()) {
+      <p class="error" role="alert">{{ api.error() }}</p>
+    }
+    @if (offerBackup()) {
+      <button class="text-button" (click)="backup.emit()">Export data before resetting</button>
+    }
     <div class="form-actions">
-      <button class="btn" (click)="cancel.emit()">Cancel</button
-      ><button class="btn danger" (click)="confirm.emit()">{{ label() }}</button>
+      <button class="btn" [disabled]="api.busy()" (click)="cancel.emit()">Cancel</button
+      ><button
+        class="btn danger"
+        [disabled]="api.busy() || (!!requireWord() && typed !== requireWord())"
+        (click)="confirm.emit(typed)"
+      >
+        {{ api.busy() ? 'Processing…' : label() }}
+      </button>
     </div></app-dialog
   >`,
 })
@@ -96,5 +123,10 @@ export class ConfirmDialog {
   message = input('');
   label = input('Confirm');
   cancel = output<void>();
-  confirm = output<void>();
+  api = inject(ApiService);
+  requireWord = input('');
+  offerBackup = input(false);
+  backup = output<void>();
+  typed = '';
+  confirm = output<string>();
 }

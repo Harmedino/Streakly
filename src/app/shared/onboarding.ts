@@ -34,14 +34,16 @@ export class Onboarding {
   tracker = inject(TrackerService);
   create = output<void>();
   name = '';
-  finish(first: boolean) {
+  async finish(first: boolean) {
     if (
       this.tracker.update((d) => {
         d.preferences.name = this.name.trim() || 'friend';
         d.preferences.onboarded = true;
       })
     ) {
-      if (first) this.create.emit();
+      if (await this.tracker.settled()) {
+        if (first) this.create.emit();
+      }
     }
   }
 }

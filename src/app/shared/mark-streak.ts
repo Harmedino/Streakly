@@ -16,14 +16,20 @@ import { RecordForm } from './record-form';
           [class.marked]="done()"
           [disabled]="disabled()"
           [attr.aria-label]="
-            done() ? 'Already marked: ' + activity().name : 'Complete ' + activity().name
+            activity().automation
+              ? 'Automatic tracking: ' + activity().name
+              : done()
+                ? 'Already marked: ' + activity().name
+                : 'Complete ' + activity().name
           "
           [attr.aria-describedby]="'mark-reason-' + activity().id"
           (click)="mark()"
         >
-          <app-icon name="check" [size]="17" />{{ done() ? 'Marked' : 'Mark streak' }}
+          <app-icon name="check" [size]="17" />{{
+            activity().automation ? 'Automatic' : done() ? 'Marked' : 'Mark streak'
+          }}
         </button>
-        @if (done()) {
+        @if (done() && !activity().automation) {
           <button
             type="button"
             class="text-button"
@@ -57,12 +63,26 @@ export class MarkStreak {
   }
   disabled() {
     return (
-      this.done() || !dueOn(this.activity(), this.tracker.data().completions, this.tracker.today())
+      !!this.activity().automation ||
+      this.done() ||
+      !dueOn(this.activity(), this.tracker.data().completions, this.tracker.today())
     );
   }
   reason() {
     const a = this.activity(),
       today = this.tracker.today();
+    if (a.automation) {
+      const credit = this.tracker
+        .data()
+        .autoCredits?.find((c) => c.activityId === a.id && c.date === today);
+      return credit
+        ? 'Completed automatically from ' +
+            credit.sources.length +
+            ' ' +
+            credit.trigger +
+            ' record(s).'
+        : 'Automatic · waiting for qualifying ' + a.automation.trigger + ' records.';
+    }
     if (this.done())
       return a.frequency === 'once'
         ? 'One-time goal completed.'

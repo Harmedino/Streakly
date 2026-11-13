@@ -41,12 +41,12 @@ export class DailyNote {
       this.error = '';
     });
   }
-  save() {
+  async save() {
     if ((this.tracker.data().dailyNotes?.[this.date()] ?? '') !== this.original) {
       this.error = 'This note changed in another tab. Reopen this date before saving.';
       return;
     }
-    if (this.tracker.dailyNote(this.date(), this.note)) {
+    if (this.tracker.dailyNote(this.date(), this.note) && (await this.tracker.settled())) {
       this.original = this.note;
       this.tracker.notify('A little moment, safely saved.');
     }

@@ -1,3 +1,4 @@
+import { FinancialExtras } from './financial-extras';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -64,7 +65,7 @@ const field = (
 ): FormField => ({ key, label, type, required, ...extra });
 @Component({
   selector: 'app-finance',
-  imports: [FormsModule, EntryForm, ConfirmDialog, Icon, EmptyState, Progress],
+  imports: [FinancialExtras, FormsModule, EntryForm, ConfirmDialog, Icon, EmptyState, Progress],
   templateUrl: './finance.html',
   styleUrl: './finance.scss',
 })
@@ -73,7 +74,17 @@ export class Finance {
   tracker = this.life.tracker;
   route = inject(ActivatedRoute);
   tab = signal(this.route.snapshot.queryParamMap.get('tab') || 'Overview');
-  tabs = ['Overview', 'Income', 'Expenses', 'Budgets', 'Savings', 'Accounts', 'Reports'];
+  tabs = [
+    'Overview',
+    'Income',
+    'Expenses',
+    'Budgets',
+    'Savings',
+    'Accounts',
+    'Reports',
+    'Salary',
+    'Targets',
+  ];
   month = signal(this.tracker.today().slice(0, 7));
   search = signal('');
   category = signal('');
@@ -101,7 +112,13 @@ export class Finance {
     };
     return icons[category] || 'wallet';
   }
-  cash = naira;
+  unit() {
+    return this.tracker.data().preferences.currency &&
+      this.tracker.data().preferences.currency !== 'NGN'
+      ? this.tracker.data().preferences.currency
+      : '₦';
+  }
+  cash = (amount: number) => naira(amount, this.tracker.data().preferences.currency);
   pretty = prettyDate;
   Math = Math;
   sum = sum;
@@ -222,7 +239,11 @@ export class Finance {
   }
   export() {
     downloadFile(
-      csvReport(this.records(), this.life.data().accounts),
+      csvReport(
+        this.records(),
+        this.life.data().accounts,
+        this.tracker.data().preferences.currency,
+      ),
       'streakly-finance-' + this.month() + '.csv',
       'text/csv;charset=utf-8',
     );
@@ -252,7 +273,10 @@ export class Finance {
       values['accountId'] ??= '';
       values['toAccountId'] ??= '';
       fields = [
-        field('amount', 'Amount (₦)', 'number', true, { min: 0.01, step: '0.01' }),
+        field('amount', 'Amount (' + this.unit() + ')', 'number', true, {
+          min: 0.01,
+          step: '0.01',
+        }),
         field(
           mode === 'recurring' ? 'startDate' : 'date',
           mode === 'recurring' ? 'First monthly due date' : 'Transaction date',
@@ -332,7 +356,7 @@ export class Finance {
             { value: 'wallet', label: 'Mobile wallet' },
           ],
         }),
-        field('openingBalance', 'Opening balance (₦)', 'number', true, {
+        field('openingBalance', 'Opening balance (' + this.unit() + ')', 'number', true, {
           step: '0.01',
           hint: 'Actual balance before the transactions you will record. No banking credentials.',
         }),
@@ -348,15 +372,21 @@ export class Finance {
         field('category', 'Category · leave blank for overall budget', 'text', false, {
           maxLength: 60,
         }),
-        field('amount', 'Monthly budget (₦)', 'number', true, { min: 0.01, step: '.01' }),
+        field('amount', 'Monthly budget (' + this.unit() + ')', 'number', true, {
+          min: 0.01,
+          step: '.01',
+        }),
       ];
     }
     if (mode === 'savings') {
       values['target'] = r ? Number(r['target']) / 100 : '';
       fields = [
         field('name', 'Savings goal name'),
-        field('target', 'Target amount (₦)', 'number', true, { min: 0.01, step: '.01' }),
-        field('deadline', 'Target date', 'date'),
+        field('target', 'Target amount (' + this.unit() + ')', 'number', true, {
+          min: 0.01,
+          step: '.01',
+        }),
+        field('deadline', 'Target date', 'date', false),
       ];
     }
     if (mode === 'contribution') {
@@ -375,7 +405,7 @@ export class Finance {
             { value: 'withdraw', label: 'Withdraw / release savings' },
           ],
         }),
-        field('amount', 'Amount (₦)', 'number', true, { min: 0.01, step: '.01' }),
+        field('amount', 'Amount (' + this.unit() + ')', 'number', true, { min: 0.01, step: '.01' }),
         field('accountId', 'Account holding the money', 'select', true, {
           options: accounts.slice(1),
         }),
@@ -385,6 +415,20 @@ export class Finance {
           hint: 'This earmarks existing funds; it does not move money or create income/expenses. Use Accounts to physically transfer funds.',
         }),
       ];
+    }
+    if (['income', 'expense', 'account', 'savings', 'budget'].includes(mode)) {
+      const basics: Record<string, string[]> = {
+        income: ['amount', 'source'],
+        expense: ['amount', 'category', 'description'],
+        account: ['name', 'openingBalance'],
+        savings: ['name', 'target'],
+        budget: ['amount', 'category'],
+      };
+      fields = fields.map((f) => ({
+        ...f,
+        advanced: !basics[mode].includes(f.key),
+        required: basics[mode].includes(f.key) ? f.required : false,
+      }));
     }
     this.editor.set({
       mode,
@@ -406,7 +450,7 @@ export class Finance {
       revision: this.tracker.data().revision ?? 0,
     });
   }
-  save(v: FormValues) {
+  async save(v: FormValues) {
     const e = this.editor()!;
     if ((this.tracker.data().revision ?? 0) !== e.revision) {
       this.life.error.set('Data changed while this form was open. Close and reopen it.');
@@ -446,6 +490,7 @@ export class Finance {
           date: str('date'),
           amount: money(str('amount')) * (str('direction') === 'withdraw' ? -1 : 1),
           note: str('note'),
+          funding: this.life.data().contributions.find((c) => c.id === e.id)?.funding,
         });
       if (mode === 'recurring') {
         const old = this.life.data().recurring.find((r) => r.id === e.id);
@@ -474,6 +519,7 @@ export class Finance {
           description: str('description'),
           accountId: str('accountId'),
           toAccountId: mode === 'transfer' ? str('toAccountId') : '',
+          ...(old?.funding ? { funding: old.funding } : {}),
           ...(old?.recurringId ? { recurringId: old.recurringId, occurrence: old.occurrence } : {}),
         };
         if (mode !== 'transfer' && v['recurring']) {
@@ -501,7 +547,7 @@ export class Finance {
           });
         } else saved = this.life.saveTransaction(t);
       }
-      if (saved) this.editor.set(null);
+      if (saved && (await this.tracker.settled())) this.editor.set(null);
     } catch (error) {
       this.life.error.set(error instanceof Error ? error.message : 'Check the entered values.');
     }
@@ -509,12 +555,13 @@ export class Finance {
   ask(section: Parameters<LifeService['remove']>[0], id: string, title: string) {
     this.deleting.set({ section, id, title });
   }
-  remove() {
+  async remove() {
     const d = this.deleting()!;
-    if (this.life.remove(d.section, d.id)) this.deleting.set(null);
+    if (this.life.remove(d.section, d.id) && (await this.tracker.settled()))
+      this.deleting.set(null);
   }
-  post() {
-    if (this.life.postRecurring()) this.posting.set(false);
+  async post() {
+    if (this.life.postRecurring() && (await this.tracker.settled())) this.posting.set(false);
   }
   toggleSchedule(r: RecurringTransaction) {
     this.life.saveRecurring({ ...r, active: !r.active });

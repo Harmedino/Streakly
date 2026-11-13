@@ -2257,3 +2257,78 @@ summary {
 }
 
 @include workspace.theme;
+
+/* Interaction feedback stays on leaves; fixed dialogs never acquire a transformed ancestor. */
+[hidden] {
+  display: none !important;
+}
+.more-options {
+  margin: 4px 0 12px;
+}
+.activity-more {
+  margin: 18px 0 24px;
+  border-top: 1px solid var(--line);
+}
+.activity-more > summary {
+  padding: 16px 0;
+  font-size: 13px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .panel {
+    transition:
+      border-color 160ms,
+      box-shadow 160ms;
+  }
+  .panel:hover {
+    border-color: var(--line-strong);
+  }
+  .progress-track > span {
+    transition: width 260ms ease;
+  }
+  .money-chart-bars span {
+    transition: height 240ms ease;
+  }
+  .record-row,
+  .feed-row,
+  .learning-entry {
+    animation: record-in 160ms ease;
+  }
+  .error,
+  .notice {
+    animation: feedback-in 160ms ease;
+  }
+  .btn {
+    transition:
+      background-color 140ms,
+      opacity 140ms;
+  }
+  .mark-streak-button.marked {
+    animation: completion-bloom 280ms ease;
+  }
+}
+@keyframes record-in {
+  from {
+    opacity: 0.3;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes feedback-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

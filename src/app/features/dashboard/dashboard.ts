@@ -1,3 +1,4 @@
+import { LearningEditor } from '../../shared/learning-editor';
 import { RecordFeed } from '../../shared/record-feed';
 import { LifeService } from '../../services/life';
 import { QuickEntry } from '../../shared/quick-entry';
@@ -18,6 +19,7 @@ import { dailyCounts, rangeScore } from '../../core/insights';
 @Component({
   selector: 'app-dashboard',
   imports: [
+    LearningEditor,
     RecordFeed,
     QuickEntry,
     DailyNote,
@@ -35,7 +37,7 @@ import { dailyCounts, rangeScore } from '../../core/insights';
 export class Dashboard {
   tracker = inject(TrackerService);
   life = inject(LifeService);
-  cash = naira;
+  cash = (amount: number) => naira(amount, this.tracker.data().preferences.currency);
   quick = signal<'income' | 'expense' | 'learning' | 'progress' | null>(null);
   finance = computed(() =>
     financeTotals(this.life.data(), monthStart(this.tracker.today()), this.tracker.today()),
@@ -71,47 +73,39 @@ export class Dashboard {
   );
   recentActivity = computed(() =>
     [
-      ...this.tracker
-        .data()
-        .completions.map((c) => ({
-          id: 'check:' + c.activityId + c.date,
-          title:
-            this.tracker.data().activities.find((a) => a.id === c.activityId)?.name || 'Activity',
-          date: c.date,
-          label: 'Streak check-in',
-          icon: 'check',
-          path: '/activities/' + c.activityId,
-        })),
-      ...this.life
-        .data()
-        .learning.map((e) => ({
-          id: 'learn:' + e.id,
-          title: e.topic,
-          date: e.date,
-          label: e.minutes + ' minutes of learning',
-          icon: 'sprout',
-          path: '/learning',
-        })),
-      ...this.life
-        .data()
-        .transactions.map((t) => ({
-          id: 'money:' + t.id,
-          title: t.source || t.description || t.category,
-          date: t.date,
-          label: t.kind + ' · ' + naira(t.amount),
-          icon: 'chart',
-          path: '/finance',
-        })),
-      ...this.life
-        .data()
-        .journal.map((j) => ({
-          id: 'journal:' + j.id,
-          title: 'Daily reflection',
-          date: j.date,
-          label: 'Personal journal',
-          icon: 'leaf',
-          path: '/journal',
-        })),
+      ...this.tracker.data().completions.map((c) => ({
+        id: 'check:' + c.activityId + c.date,
+        title:
+          this.tracker.data().activities.find((a) => a.id === c.activityId)?.name || 'Activity',
+        date: c.date,
+        label: 'Streak check-in',
+        icon: 'check',
+        path: '/activities/' + c.activityId,
+      })),
+      ...this.life.data().learning.map((e) => ({
+        id: 'learn:' + e.id,
+        title: e.topic,
+        date: e.date,
+        label: e.minutes + ' minutes of learning',
+        icon: 'sprout',
+        path: '/learning',
+      })),
+      ...this.life.data().transactions.map((t) => ({
+        id: 'money:' + t.id,
+        title: t.source || t.description || t.category,
+        date: t.date,
+        label: t.kind + ' · ' + this.cash(t.amount),
+        icon: 'chart',
+        path: '/finance',
+      })),
+      ...this.life.data().journal.map((j) => ({
+        id: 'journal:' + j.id,
+        title: 'Daily reflection',
+        date: j.date,
+        label: 'Personal journal',
+        icon: 'leaf',
+        path: '/journal',
+      })),
     ]
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 5),
@@ -120,12 +114,13 @@ export class Dashboard {
     [
       ...this.life
         .data()
-        .goals.filter((g) => g.status === 'active')
+        .goals.filter((g) => g.status === 'active' && !!g.deadline)
         .map((g) => ({ id: g.id, title: g.title, date: g.deadline, path: '/goals' })),
       ...this.life
         .data()
         .savingsGoals.filter(
           (g) =>
+            !!g.deadline &&
             this.life
               .data()
               .contributions.filter((c) => c.goalId === g.id)

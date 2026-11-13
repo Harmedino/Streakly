@@ -222,5 +222,9 @@
   <app-activity-form (close)="create.set(false)" />
 }
 @if (quick(); as mode) {
-  <app-quick-entry [mode]="mode" (close)="quick.set(null)" />
+  @if (mode === 'learning') {
+    <app-learning-editor (close)="quick.set(null)" />
+  } @else {
+    <app-quick-entry [mode]="mode" (close)="quick.set(null)" />
+  }
 }

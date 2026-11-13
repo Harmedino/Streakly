@@ -48,7 +48,13 @@ export class QuickEntry implements OnInit {
       this.fields = [
         {
           key: 'amount',
-          label: 'Amount (₦)',
+          label:
+            'Amount (' +
+            (this.life.tracker.data().preferences.currency &&
+            this.life.tracker.data().preferences.currency !== 'NGN'
+              ? this.life.tracker.data().preferences.currency
+              : '₦') +
+            ')',
           type: 'number',
           required: true,
           min: 0.01,
@@ -109,12 +115,10 @@ export class QuickEntry implements OnInit {
           label: 'Streak activity',
           type: 'select',
           required: true,
-          options: this.life.tracker
-            .active()
-            .map((a) => ({
-              value: a.id,
-              label: a.name + ' · target ' + a.quantityTarget + ' ' + a.unit,
-            })),
+          options: this.life.tracker.active().map((a) => ({
+            value: a.id,
+            label: a.name + ' · target ' + a.quantityTarget + ' ' + a.unit,
+          })),
         },
         { key: 'date', label: 'Completion date', type: 'date', required: true, max: today },
         {
@@ -128,8 +132,19 @@ export class QuickEntry implements OnInit {
         },
         { key: 'note', label: 'Completion note', type: 'textarea', maxLength: 1000 },
       ];
+    const primary: Record<string, string[]> = {
+      income: ['amount', 'source'],
+      expense: ['amount', 'category', 'description'],
+      learning: ['description'],
+      progress: ['activityId', 'quantity'],
+    };
+    this.fields = this.fields.map((f) => ({
+      ...f,
+      advanced: !primary[mode].includes(f.key),
+      required: primary[mode].includes(f.key) ? f.required : false,
+    }));
   }
-  save(v: FormValues) {
+  async save(v: FormValues) {
     if ((this.life.tracker.data().revision ?? 0) !== this.revision) {
       this.life.error.set('Data changed while this form was open. Reopen it before saving.');
       return;
@@ -173,7 +188,7 @@ export class QuickEntry implements OnInit {
               'This day cannot be marked. Check the activity start, schedule, pause and protection settings.',
           );
       }
-      if (saved) this.close.emit();
+      if (saved && (await this.life.tracker.settled())) this.close.emit();
     } catch (e) {
       this.life.error.set(e instanceof Error ? e.message : 'Check the entered values.');
     }

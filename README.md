@@ -1,170 +1,103 @@
 # Streakly
 
-**Small actions. Big consistency.** A private, browser-local personal life, finance, learning, goal, and streak tracker built with Angular standalone components, TypeScript, SCSS, Router, Signals, and Lucide icons.
+**Small actions. Big consistency.** An Angular personal workspace for habits, notes, money, learning, goals and reflection, with a Node.js/Express/Mongoose backend.
 
-## Run
+## Run locally
 
-Requires Node.js 22.12+ (tested with 24.19) and npm.
+Requires Node.js 22.12+, npm, and MongoDB 7/8. Node 24.19 is used in development.
 
 ```sh
 npm ci
-npm start
+cp .env.example .env
+# Start MongoDB, or set MONGODB_URI to an existing development database:
+docker compose up -d mongo
+npm run server             # Terminal 1: Express on port 3000
+npm start                  # Terminal 2: Angular on http://localhost:4200, /api proxied to Express
 ```
 
-The development server uses port 4200. For a container, use `npm start -- --host 0.0.0.0`. Use the existing checkout; each cloud task already has an isolated environment, so a Git worktree is unnecessary.
+Use the exact origin in `APP_ORIGIN`. `http://localhost:4200` and `http://127.0.0.1:4200` are different origins. The default `.env.example` supports Angular development. To serve the built app directly from Express, set `APP_ORIGIN=http://localhost:3000`, run `npm run build`, then open `http://localhost:3000`.
 
-```sh
-npm run build             # strict TypeScript + Angular templates, production bundles
-npm test -- --watch=false # Vitest via Angular's unit-test builder
-npm run test:e2e          # Chromium workflows; start npm start first
-npm run test:pwa          # builds and tests offline production service worker
-npm run format           # readable source formatting
-```
+Production: set `NODE_ENV=production`, an HTTPS `APP_ORIGIN`, an authenticated `MONGODB_URI`, `SMTP_URL` and `MAIL_FROM` in the deployment environment. Never put credentials in Angular or commit `.env`. Run `npm run build`, `npm run server:build`, then `npm run server:start` behind an HTTPS reverse proxy. MongoDB must not be publicly exposed. The included Compose file is a loopback-only development database, not a production database deployment.
 
-Browser tests use `/usr/bin/chromium`. Set `CHROMIUM_PATH` to your installed Chromium executable if needed. They use fresh browser contexts and never seed production application data. Build output is in `dist/streakly/browser`; serve it with a static host configured to fall back to `index.html` for Angular routes. No application backend is required.
+Password reset links are delivered through the configured SMTP provider. Without SMTP, reset requests explain that email delivery is unavailable; tokens are never returned to the browser or logged. The integration tests use an in-memory test mail transport, available only under `NODE_ENV=test`.
 
-## Your everyday workflow
+## Accounts and persistence
 
-- Set a display name, then create your first intention. The application starts empty.
-- Track daily, selected-weekday, weekly, monthly, custom-interval, and one-time activities.
-- Check off a day immediately, enter quantities, attach notes, or undo a completion.
-- Search and sort activities, use custom categories, and archive without losing history.
-- Open an activity for its streaks, heatmap, calendar, schedule, and recorded moments.
-- Select a calendar date to correct historical progress. Future recordings are disabled.
-- Explore actual weekly/monthly consistency, daily trends, weekday rates, and active days.
-- Export JSON backups, validate and confirm replacement imports, and choose a persistent light/dark theme in Settings.
+Sign up or sign in when connected to the backend. Passwords use salted scrypt hashing. Opaque session tokens are stored hashed in MongoDB and delivered only in HttpOnly, SameSite=Strict cookies (Secure in production). Mutation requests require the session's CSRF token and JSON from the configured origin. Every data route is authorized against the session owner; resource IDs never grant access to another user's workspace. Password resets expire in 30 minutes, are single-use and revoke existing sessions.
 
-Reminder times are opt-in in Settings. While the application is open, it checks due activities every 30 seconds, uses notifications only after permission, and provides an in-app fallback. It does not send backend push messages or promise delivery when closed. One-time goals count successful completion without creating recurring streaks. Milestones celebrate 3, 7, 14, 30, 50, 100, and 365 successful consecutive tracking periods.
+MongoDB is the source of truth for signed-in accounts. Angular only applies a successful write after server acknowledgment. Revision checks reject concurrent overwrites across tabs/devices. Failed requests leave forms open with their values and an error; session expiry prompts reauthentication without destroying an open form. Refresh reloads the latest server snapshot. Record drafts are saved in a separate field of the authenticated server workspace and never put into browser localStorage.
 
-## Privacy and persistence
+An installation served without a backend can still open the legacy browser workspace. Once a browser signs into the server, a non-sensitive `server-required` flag prevents silently falling back to legacy data on a network failure. New account records, passwords, session tokens and server snapshots are not saved in localStorage. Browser preferences and original pre-migration records may remain there. Server account access requires connectivity; an offline PWA is not a database replica or a sync queue.
 
-All data is saved under `streakly.data.v1` in the current browser's LocalStorage. There is no authentication, database, REST API, analytics, or automatic cross-device synchronization. Fonts and icons are bundled locally. Browser data can be removed by clearing site storage or ending a private session; export backups regularly.
+## Safe browser migration
 
-Storage errors are shown visibly, and failed writes do not update application state. Unreadable stored data is preserved and protected against automatic overwrites. The backup export includes the original unreadable payload in this recovery case. A validated, explicitly confirmed import can replace it. Same-origin tabs synchronize through storage events. Each write compares its saved snapshot before updating and increments a revision; stale writes are rejected. Open activity/progress forms detect newer revisions and require reopening before saving. This prevents ordinary stale-tab overwrites; LocalStorage is not a transactional multi-device database.
+Signing in does not import browser data automatically. The migration panel validates the original `streakly.data.v1` records, previews counts, offers the original JSON download and requires explicit confirmation. The server keeps a pre-import backup, checks IDs/references, preserves original date-only tracking values, merges non-conflicting records and rejects conflicts without partially importing. Repeating the exact migration is idempotent. A different second migration requires a reviewed JSON restore. The original browser data is never cleared automatically. Invalid records produce a reviewable error and can still be downloaded.
 
-## Architecture
+## Fast entry and editing
 
-- `models/`: strongly typed activities, schedules, completions, preferences, and versioned data.
-- `core/`: pure local-date arithmetic, scheduling, streak calculation, and aggregate insights.
-- `services/`: storage validation/migration boundary and a single reactive tracker store.
-- `shared/`: accessible dialogs, activity/record forms, activity rows, calendar, heatmap, icons, and progress/empty states.
-- `features/`: lazy-loaded dashboard, activities/details, calendar, statistics, and settings.
-- `e2e/`: real-browser tests for onboarding, quantities, notes, refresh persistence, undo, categories, archival/deletion, history, backup import/export, theme persistence, and mobile layout.
+Income initially asks for amount and source. Expenses ask for amount, category and an optional description. Dates default to today; payment accounts, custom dates and recurring options are under **More Options**. Accounts and savings goals also start with minimal fields. Streaks initially show a name and frequency; templates, appearance, targets and automatic rules are optional. Job applications require company and role. Goals require a title. Records remain editable through prefilled forms.
 
-### Calendar and streak rules
+Learning is a notes workspace: content is required, title is optional, and no URL, time or linked streak is required. The Markdown toolbar supports headings, emphasis, lists, checklists, code blocks and links. Raw HTML is escaped and Angular sanitizes rendered markup. Optional metadata includes tags, category, minutes, links, next steps and a related streak. Notes can be pinned, searched, filtered by category/tag, sorted oldest/newest and browsed by calendar date. The last edit date is shown. New-note drafts autosave to the server; a failed draft save is visibly reported.
 
-Date-only values use local `YYYY-MM-DD` keys. Date increments use calendar arithmetic (`setDate`), never 24-hour timestamp increments. UTC is used only to compare already-extracted date parts for DST-independent interval distances. Weeks start on Monday. Weekly/monthly targets count distinct successful days; each day must reach its quantity target. Only scheduled days contribute to daily/weekday/interval streaks. An unfinished current day or period does not break an existing streak. A missed closed period does. The first weekly/monthly period starts at its calendar boundary, but completions before the activity start are excluded. Changes to schedules or quantity targets intentionally recalculate history.
+## Automatic streaks
 
-The version 3 validation/migration boundary upgrades version 1 and 2 records without deleting history, and rejects unknown formats. The original storage key remains `streakly.data.v1` for compatibility. Imports validate dates, frequencies, bounded quantities, IDs, references, duplicate entries, and required fields before data replacement. Completion percentage excludes an unfinished current tracking period; week/month insight percentages show progress toward targets in the overlapping tracking periods. Archived records remain available in activity details and filtered calendars.
+Daily and weekly Yes/No streaks can listen for learning notes, actual job applications, expense records, nonempty journal reflections, or completed dated planner tasks. Optional minimums apply to recorded minutes, spending amounts or event counts. The backend reconciles event-derived completion credits on every mutation, including edits, deletion, backdating and rule changes. One completion per activity/date is maintained, unrelated habits stay manual, and the original manual base is preserved when an automatic credit disappears. Archived habits do not gain new automatic dates. Cards explain the trigger and why a day was completed. Manual events remain manual; visiting a page never counts as a completion.
 
-## Validation
+Legacy linked-learning credits also remain supported: duration habits receive minutes, Yes/No habits receive one success per date, and deleting a linked entry restores the manual base. Both mechanisms use local date-only keys and the configured IANA time zone for today. Existing daily, weekday, weekly, monthly, interval and one-time streak calculations remain in place.
 
-Unit tests cover daily/weekday/interval streaks, missed days, weekly/monthly goals, leap years, year/month boundaries, DST, one-time goals, quantity targets, duplicate prevention, undo, archival, deletion, storage persistence/failure/recovery, and import validation. Browser tests cover the complete interaction flow at desktop and mobile widths.
+## Finance
 
-## Everyday enhancements
+Amounts use integer minor units (kobo by default) with safe decimal parsing. Supported whole-ledger currencies are NGN, USD, EUR, GBP and CAD. Changing currency never performs FX conversion or relabels existing recorded money; export and reset Finance before changing a nonempty ledger's currency.
 
-The existing colors, typography, sidebar navigation, and card layout are retained. Mobile controls have larger touch targets, 16 px form inputs to avoid keyboard zoom, viewport-fitting dialogs, keyboard-safe drawer focus, and a sticky header. Motion is limited to short, reduced-motion-aware transitions.
+Accounts use actual opening balances and dates. Income, expenses and transfers update tracked balances exactly. Unassigned entries affect cash flow without inventing account balances. Own-account transfers are neither income nor spending. Savings contributions earmark money already held; withdrawals release it. Savings-account balances are not counted twice. Backdated edits and deletion validate account/goal allocation history. Optional savings deadlines can be omitted. Monthly recurring payments require explicit confirmation of actual receipts/payments and retain occurrence IDs to avoid duplicates.
 
-### Rest, pause, and freezes
+**Salary** shows a selected income payment's received, explicitly spent, allocated-to-savings and remaining amounts. Link existing expenses or savings contributions and split funding across multiple income payments. Unknown funding can stay unallocated. Funding links do not move money between accounts. They cannot exceed a record's amount or allocate the same income twice; editing/deleting linked money is validated before saving. Unlinked expenses are never assumed to come from salary.
 
-Open an activity's **Rest & streak protection** section, or select a date in its calendar. Planned rest days are excluded; temporary pauses retain a dated history until resumed. A completed day recorded before a pause remains a real completion. Neither rest nor a pause earns streak credit.
+**Targets** supports monthly income goals, expense limits, net savings targets and source-specific income targets. Overall and category-specific spending budgets remain in **Budgets**. Targets and funding links are editable. Trends, salary category distributions and comparisons use actual stored transactions. CSV export follows active transaction filters and escapes spreadsheet formula prefixes.
 
-A freeze is manual, protects a past missed scheduled date, and is limited to two per activity per calendar month (the month of the protected date). It preserves a run but does not add a success. Future, completed, resting, paused, and already-frozen dates cannot consume a freeze. Used/remaining counts and frozen history are visible. Removing a freeze refunds that date's use and recalculates streaks.
+## Reset, backup and reports
 
-For weekly/monthly activities, rest/pause days reduce available days and targets are capped to the days still available in that period. Fully excluded periods are neutral. Freezes can protect an unsuccessful **closed** tracking period only when real successful days plus frozen days cover the target; protected periods preserve a streak without increasing it. Calendars distinguish successful, partial, missed, rest, frozen, paused, upcoming, and unscheduled days using restrained styling and explicit labels.
+Export all current records as JSON, or validate and confirm a restore. Before import, migration or reset, the server stores an owner-protected safety backup in MongoDB; Settings can download the most recent one. Backups are retained until separately maintained by the server operator, so include them in the database backup policy.
 
-### Progress and organization
+Section resets explicitly name the affected section, preserve unrelated modules and clear dependent links. Full reset requires typing **RESET** in both UI and API; it clears application records while retaining the account and profile. Confirmation buttons disable while processing, failures keep the dialog open, and a backup export action is available before reset. Single deletions also require confirmation.
 
-Activity forms support Yes/No, quantities, durations in minutes, and monetary amounts with your chosen currency unit. Existing quantity history is preserved. Progress is an editable daily total, not an increment: update it throughout the day without duplicate completions. Reaching the target automatically completes that date; the card shows the remaining amount.
+Reports explain earnings, spending, net cash flow, largest categories and comparison dates in plain language. They include learning notes/topics/hours/days, active and best streaks, missed scheduled days, automatic completions, completed tasks and goals. Insufficient comparison data is stated explicitly. No forecasts or generated insights are presented as recorded facts.
 
-Ten optional form templates prefill fields without saving an activity until confirmed. Everything remains editable. Create categories beside the activity picker; rename them in Settings to update assigned activities together. Favorite pins appear first; use **My order** to move activities within their pinned/unpinned group, and optionally choose compact view. Archived items stay hidden by default and retain their restore action.
+## Architecture and API
 
-The Insights page includes a deterministic weekly reflection: real completions, target percentage, successful days, current best streak, most consistent activity, attention list, and an explicitly labelled comparison against the previous full week. Optional daily personal notes appear on Overview and Calendar and travel with backups.
+- Angular: standalone components, Signals, Router, SCSS tokens, Lucide and reusable forms/dialogs/calendars. No UI or animation framework added.
+- `server/models`: users, expiring sessions and owner-unique workspace aggregates.
+- `server/routes`: authentication, workspace/resource endpoints and draft notes.
+- `server/services`: password/session/email functions, record defaults, migration, backups and atomic workspace writes.
+- `server/middleware`: authorization, CSRF and consistent errors.
+- `src/app/core/data-validation.ts`, `life-validation.ts`, `automation.ts`, `finance.ts`: shared pure domain logic, used by browser and server.
 
-### Recovery and multiple tabs
+An owner has one MongoDB workspace aggregate. This makes compound ledger, credit and automatic-streak changes atomic in a single compare-and-swap write without requiring MongoDB replica-set transactions. Workspace requests are limited to 8 MB, below MongoDB's document limit. This is a bounded personal workspace, not unlimited document storage. Backups are separate owner-scoped documents. Drafts live in their owner’s workspace with a reset epoch, so a stale autosave cannot resurrect a draft after Reset All. Unique owner/email/token indexes and session TTL indexes are created at startup.
 
-Unreadable original data remains untouched. Export it, then use **Recover valid records** in Settings to preview valid records and discarded counts. Replacement requires confirmation; no recovery is written automatically. Syntactically broken JSON requires manual repair from the exported original. Failed saves never update reactive state. Valid incoming tab changes update the current view; external deletions or unreadable writes show a clear warning rather than replacing the current data silently.
+Responses use `{ok:true,data,meta?}` or `{ok:false,error:{code,message}}`. Core routes:
 
-### Install and offline support
+- `/api/auth/signup`, `/login`, `/logout`, `/session`, `/forgot-password`, `/reset-password`
+- `GET/PUT /api/workspace` (`expectedRevision` on writes)
+- `GET/PATCH /api/profile`
+- `GET /api/:section?page=1&limit=50` (maximum page size 200)
+- `POST /api/:section[/:id]`, `PUT/DELETE /api/:section/:id` (revision required; deletion also requires `confirm:true`)
+- `/api/migration/preview`, `/api/migration`, `/api/reset`
+- `/api/backup`, `/api/backup/previous`, `/api/reports?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET/PUT/DELETE /api/drafts/learning`
 
-Production builds use Angular's official service worker, a web app manifest, 192/512 px app icons, and pre-cached application bundles, lazy routes, fonts, and icons. Serve production output over HTTPS or localhost. After the initial successful load/cache, Streakly can reload and navigate offline with its existing LocalStorage data. Development (`npm start`) intentionally does not register the worker.
+Sections cover activities, tasks, learning, jobs, income/expenses/transactions, accounts, recurring rules, budgets, savings goals/contributions, targets, goals and journal. The aggregate API handles compound completion/history mutations. Cross-record constraints reject orphaned references rather than deleting dependencies silently.
 
-Settings shows an install button when the browser exposes an install prompt, with manual browser/Safari instructions otherwise. Installation support varies by browser. Updates show a notice and wait for an explicit reload; open forms are not automatically discarded. The service worker does not create a cloud backup or cross-device sync, and browser eviction/clearing storage can still remove local data.
-
-## Personal to-do list
-
-Open **Daily Planner** in the sidebar (or mobile menu) to add tasks with optional due dates, edit them, complete or undo them, and filter pending/all/done. Removing a task or clearing completed tasks requires confirmation. Tasks persist in the same LocalStorage data, synchronize between tabs, and are included in JSON backups and recovery. Existing version 1/2 backups without tasks still work. To-dos do not affect habit streaks or consistency statistics.
-
-## Manual check-ins and backdating
-
-Nothing is marked complete just by opening Streakly or waiting. Mark today yourself, or use **Mark a past day** on an activity. The recording dialog includes a date picker plus Today/Yesterday shortcuts; past entries update the selected day’s history and recalculate streaks without completing today. Entries are limited to the activity’s start date through today. Each date has one editable record, so logging it twice never adds another streak day.
-
-A new daily check-in opens at **local midnight**, rather than 24 hours after your last entry. The app schedules that rollover with local calendar arithmetic (including daylight-saving changes), refreshes when a sleeping tab regains focus, and preserves the streak while today is still unfinished.
-
-The labeled **Mark streak** button stays visible on activity cards and detail pages. Once marked it is disabled until the next eligible day; Undo is a separate action. Paused, resting, future, and unscheduled activities show a disabled button with a reason. The Overview’s **All activities** tab keeps these disabled activities visible, while today’s statistics still count only scheduled activities.
-
-## Personal life dashboard (schema version 3)
-
-The existing Angular app, streak engine, themes, local-date arithmetic, protection rules, PWA, and manual/past-day check-ins remain in place. Existing `/activities`, `/calendar`, `/statistics`, and `/todos` URLs still work. Navigation now includes Overview, My Streaks, Daily Planner, Learning Journal, Job Applications, Finance, Goals, Personal Journal, Reports, and Settings. Records begin empty; no sample money or activity is presented as your own.
-
-Overview combines actual streaks/completions with this week's learning time, this month's applications, recorded income/expenses, tracked savings, available balances, active goals, and pending deadlines. Quick-entry dialogs record income, expenses, learning, and manual streak progress without leaving the page.
-
-### Finance
-
-All amounts are integer **kobo** internally, displayed in Nigerian Naira. Amount inputs accept up to two decimals; unsafe or oversized values are rejected. No bank login, password, account credential, API connection, or external database is involved.
-
-- **Accounts:** bank, cash, savings, and wallet accounts have a real opening balance and opening date. Transactions cannot precede the account's opening date. Account deletion is blocked while financial history references it.
-- **Income / expenses:** add, edit, delete, search, and filter actual dated records, with custom categories and optional payment accounts. Unassigned records affect cash flow but are explicitly excluded from tracked account balances.
-- **Transfers:** move funds between distinct tracked accounts. They change the two balances equally and never count as earnings or spending. The “Savings Transfers” category cannot be entered as an ordinary expense; use transfers or savings allocations instead.
-- **Balances:** tracked balance = opening balances + account income − account expenses + incoming transfers − outgoing transfers. This is deliberately different from net cash flow.
-- **Savings:** goal contributions **earmark funds already held in an account**; they do not physically move money or create income/expenses. A withdrawal releases an allocation from the account holding it. Use an account transfer to actually move funds. Available balance excludes savings accounts and subtracts earmarked funds in spendable accounts. Total savings includes savings-account balances plus earmarked spendable-account funds; allocation inside a savings account is not added again. Backdated edits, deletions, and withdrawals are checked against allocation history so reserved funds cannot silently be spent or withdrawn twice.
-- **Budgets:** an empty category defines the overall monthly budget. Other budgets match exact category names. One budget per month/category is allowed, with usage, remaining amounts, approaching-limit notices, and overruns. Future-month budgets are supported.
-- **Recurring records:** monthly schedules are not assumed to have been paid. Review and explicitly confirm due receipts/payments. Occurrences retain the original calendar-day anchor (31st → last day of a short month → 31st again). Each occurrence is posted once. Deleting a posted transaction does not silently recreate it; pausing a schedule stops further due records. Posted history prevents schedule deletion; pause it instead.
-- **Reports:** calendar-month totals, income/expense trends, spending categories, income sources, recent transactions, highest expenses, net allocations, and recurring spending use actual ledger records. CSV export uses the current date/search/category filters and escapes spreadsheet formula prefixes, quotes, commas, and newlines.
-
-### Learning, applications, goals, planner, reflections
-
-Learning entries store topic, description, category, minutes, date, resource links, notes, and next steps. Calendars, search, filters, and weekly/monthly totals use saved entries. A duration streak receives linked learning minutes; a Yes/No streak gets one success per date. Linking multiple entries does not create duplicate completion records. A separate credit ledger retains the original manual progress and note; editing/deleting learning adjusts its contribution and restores manual history when the last link is removed. Incompatible streak types require unlinking learning first.
-
-Job Applications stays deliberately lightweight: company, position, application date/link, Applied/Interview/Rejected/Offer status, and notes. It includes search, status filtering, week/month counts, and a six-month application chart, with no job search or automated applications.
-
-Goals have categories, dates, deadlines, priorities, status, manual progress or calculated milestone progress, and links to streaks, savings goals, and learning categories. Unchanged milestone titles retain completion history when edited. Progress changes create dated events for reports; records are not inferred from current status alone.
-
-The existing task list is now Daily Planner, with scheduled dates, priorities, today's progress, overdue filtering, and rescheduling through Edit. Old undated tasks remain available. New completions receive a local completion date; old completed tasks without a known completion date are not assigned invented dates in weekly/monthly reports.
-
-Personal Journal adds one structured reflection per local date: accomplishments, learning, challenges, ideas, improvements, tomorrow's priorities, and optional mood. It has a browsing calendar and search. Existing quick daily notes remain untouched on Overview and the habit calendar.
-
-Life Reports combine real streak consistency, learning minutes, job applications, financial flows, net savings contributions, completed tasks, goal progress, and completions. Current incomplete periods are explicitly compared with the previous full week/month. Savings allocations and tracked holdings are labelled separately.
-
-### Migration, backup, and resets
-
-The storage key remains `streakly.data.v1` for compatibility; the JSON schema is version 3. Versions 1/2 gain empty life-management modules without dropping original habits, completion history, tasks, or notes. Version 3 validates record IDs, references, dates, finance invariants, duplicate recurring occurrences, learning credits, journal uniqueness, and goal history. Invalid storage stays protected; it is never silently overwritten. Financial recovery refuses to discard invalid linked money records automatically.
-
-Before **every import or section reset**, the previous raw stored data is saved to `streakly.backup.before-restore`. If that safety backup cannot be stored, replacement is blocked. Settings can export the last pre-restore file. This local safety copy is replaced by the next import/reset and is lost if site storage is cleared; export full JSON backups regularly. Imports validate before confirmation and reject stale confirmations after another tab changes data.
-
-Section resets clear related links while keeping unrelated records. Resetting learning restores the separate manual streak base. Resetting finance clears account/savings links in personal goals. Resetting streaks leaves learning records but unlinks their credits. Reset-all removes application records and preferences. All reset actions require confirmation and a safety backup.
-
-No data automatically synchronizes across devices. Same-origin tabs in the same browser synchronize with revision/snapshot checks. Avoid storing credentials or passwords in any notes field. Browser/device changes and clearing site data can remove all locally held records.
-
-### Validation commands
+## Verify
 
 ```sh
 npm run build
+npm run server:check
 npm test -- --watch=false
-npm run test:e2e               # start npm start first
-npm run test:pwa               # production build + offline check
-# Optionally run normal browser tests against an already-served production build:
+npm run test:api             # real localhost MongoDB; ONLY drops streakly_api_test
+npm run test:backend:e2e     # running Express + MongoDB; APP_ORIGIN must match base URL
+# Legacy browser-only regression tests, against the static test host:
 STREAKLY_TEST_URL=http://127.0.0.1:4201 npm run test:e2e
+npm run test:pwa
 ```
 
-Finance and life tests cover exact decimal conversion, balances, unassigned flows, transfers, savings allocation/withdrawal rules, recurring month boundaries/deduplication, CSV escaping, linked-learning reconciliation, migrations, backup failures, resets, goal events, persistence, and responsive multi-module workflows.
-
-## Workspace design system
-
-The UI uses a neutral canvas and a restrained violet accent in light and dark themes. Shared color, spacing, type, border and shadow tokens live in `src/styles/_tokens.scss`; reusable controls and surface styles are defined in `src/styles/_workspace.scss`. Feature layouts are in their own SCSS files and remain lazy loaded. No UI framework or new runtime dependency was added. Obsolete decorative styles and superseded declarations were removed.
-
-The new Overview leads with daily progress, weekly rhythm and quick capture, then separates streaks/priorities/recent history from finance, learning and goals. Finance prioritizes tracked balances, account summaries and readable transaction history; tables become stacked transaction rows on phones. Learning uses a chronological timeline, applications a simple status pipeline, goals milestone progress, reflections a date rail, and the planner a task agenda with a capture panel. Settings has section navigation for profile, appearance, categories, reminders, install, backup and reset.
-
-At mobile/tablet widths, a persistent Today/Planner/Finance/More navigation complements the complete focus-trapped menu. Dialogs use a scrollable sheet with visible actions, forms preserve accessible labels, and reduced-motion preferences suppress animation. Page transitions intentionally avoid transforms on ancestors of fixed dialogs. The thin route-loading indicator reflects actual router navigation. Storage schemas, keys and business rules are unchanged by this redesign.
-
-`e2e/design.spec.ts` renders every route (including activity details, calendar and insights), all seven finance sections, and a record form at 1440, 768, 390 and 320 pixels in both themes. It checks overflow, dialog viewport placement, JavaScript errors and unchanged stored records. Visual captures use isolated test fixtures only; the app continues to start empty. Screenshots are saved under `/tmp/streakly-redesign` during these checks.
+Backend browser tests default to `http://127.0.0.1:3000`; set `STREAKLY_BACKEND_URL` for a different test origin. Tests use isolated accounts/contexts and no production user records. Responsive checks include 320, 375, 430, 768, 1024 and 1440px. Screenshots are written under `/tmp/streakly-backend`. Animation respects reduced-motion preferences, never transforms fixed-dialog ancestors and does not block interaction.

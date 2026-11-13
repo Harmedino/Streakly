@@ -18,10 +18,10 @@ export function signedMoney(value: string | number): number {
       ? -money(text.slice(1))
       : money(text);
 }
-export function naira(kobo: number): string {
+export function naira(kobo: number, currency = 'NGN'): string {
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
-    currency: 'NGN',
+    currency,
     maximumFractionDigits: 2,
   }).format(kobo / 100);
 }
@@ -168,11 +168,24 @@ export function assertFinance(life: LifeData): void {
       }
   }
 }
-export function csvReport(transactions: Transaction[], accounts: Account[]): string {
+export function csvReport(
+  transactions: Transaction[],
+  accounts: Account[],
+  currency = 'NGN',
+): string {
   const cell = (v: string) =>
     '"' + (/^[=+@\-\t\r]/.test(v) ? "'" + v : v).replace(/"/g, '""') + '"';
   return [
-    ['Date', 'Type', 'Amount (NGN)', 'Source', 'Category', 'Account', 'Destination', 'Description'],
+    [
+      'Date',
+      'Type',
+      'Amount (' + currency + ')',
+      'Source',
+      'Category',
+      'Account',
+      'Destination',
+      'Description',
+    ],
     ...transactions.map((t) => [
       t.date,
       t.kind,

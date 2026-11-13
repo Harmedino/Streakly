@@ -15,7 +15,13 @@
     </div>
     <button class="btn primary" (click)="open()">
       <app-icon name="plus" [size]="17" />{{
-        kind === 'jobs' ? 'Add application' : kind === 'goals' ? 'Add goal' : 'Add entry'
+        kind === 'jobs'
+          ? 'Add application'
+          : kind === 'goals'
+            ? 'Add goal'
+            : kind === 'learning'
+              ? 'New note'
+              : 'Add entry'
       }}
     </button>
   </div>
@@ -121,6 +127,10 @@
       />
     </div>
     @if (kind === 'learning') {
+      <select aria-label="Note sort" [ngModel]="noteSort()" (ngModelChange)="noteSort.set($event)">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+      </select>
       <select
         aria-label="Learning category filter"
         [ngModel]="filter()"
@@ -174,17 +184,25 @@
                   }}</time
                   ><span class="status-pill">{{ e.category }}</span></span
                 >
-                <h2>{{ e.topic }}</h2>
+                <h2>{{ e.pinned ? '☆ ' : '' }}{{ e.topic || 'Untitled note' }}</h2>
               </div>
-              <span class="pill">{{ e.minutes }} min</span>
+              @if(e.minutes>0){<span class="pill">{{ e.minutes }} min</span>}
             </div>
-            <p class="record-description">{{ e.description }}</p>
+            <app-markdown [content]="e.description" />
             @if (e.notes) {
-              <p class="record-description">{{ e.notes }}</p>
+              <app-markdown [content]="e.notes" />
             }
             @if (e.next) {
               <p class="helper">Next: {{ e.next }}</p>
             }
+            @if (e.updatedAt) {
+              <p class="helper">Edited {{ pretty(e.updatedAt.slice(0, 10)) }}</p>
+            }
+            <div class="note-tags">
+              @for (tag of e.tags ?? []; track tag) {
+                <button class="text-button" (click)="filter.set(tag)">#{{ tag }}</button>
+              }
+            </div>
             <div class="quick-actions">
               @for (url of urls(e.resources); track url) {
                 <a class="text-button" [href]="url" target="_blank" rel="noopener noreferrer"
@@ -196,7 +214,9 @@
                   >{{ a.name }} · streak linked</a
                 >
               }
-              <button class="text-button" (click)="open(e)">Edit entry</button
+              <button class="text-button" (click)="open(e)">Edit note</button
+              ><button class="text-button" (click)="pinNote(e)">
+                {{ e.pinned ? 'Unpin' : 'Pin note' }}</button
               ><button class="text-button destructive" (click)="ask(e.id, e.topic)">
                 Delete entry
               </button>
@@ -206,7 +226,7 @@
           <section class="panel">
             <app-empty
               title="Keep a little of what you learn."
-              description="Record your first topic, time spent, and the next thing you want to explore."
+              description="Write a note. Links, learning time and streak connections are optional."
             />
           </section>
         }
@@ -259,7 +279,7 @@
               <span class="status-pill">{{
                 g.status === 'completed'
                   ? 'Completed'
-                  : g.deadline < tracker.today()
+                  : g.deadline && g.deadline < tracker.today()
                     ? 'Overdue'
                     : g.status
               }}</span>
@@ -421,3 +441,7 @@
     />
   }
 </div>
+
+@if (noteEditing() !== undefined) {
+  <app-learning-editor [entry]="noteEditing() ?? null" (close)="noteEditing.set(undefined)" />
+}

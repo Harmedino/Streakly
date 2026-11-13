@@ -1,3 +1,5 @@
+import { inject } from '@angular/core';
+import { ApiService } from '../services/api';
 import { Component, input, output, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Dialog } from './dialog';
@@ -6,6 +8,7 @@ export interface FormField {
   label: string;
   type?: 'text' | 'textarea' | 'date' | 'month' | 'number' | 'url' | 'select' | 'checkbox';
   required?: boolean;
+  advanced?: boolean;
   maxLength?: number;
   min?: number | string;
   max?: number | string;
@@ -22,6 +25,7 @@ export type FormValues = Record<string, string | number | boolean>;
       <div class="entry-fields">
         @for (field of fields(); track field.key) {
           <label
+            [hidden]="field.advanced && !more"
             [class.checkbox-label]="field.type === 'checkbox'"
             [class.entry-wide]="
               !['date', 'month', 'number'].includes(field.type || 'text') || field.key === 'amount'
@@ -83,22 +87,38 @@ export type FormValues = Record<string, string | number | boolean>;
           </label>
         }
       </div>
+      @if (hasOptions()) {
+        <button
+          type="button"
+          class="text-button more-options"
+          [attr.aria-expanded]="more"
+          (click)="more = !more"
+        >
+          {{ more ? 'Fewer options' : 'More Options' }}
+          <span aria-hidden="true">{{ more ? '−' : '+' }}</span>
+        </button>
+      }
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
+      }
+      @if (api.error()) {
+        <p class="error" role="alert">{{ api.error() }}</p>
       }
       @if (localError) {
         <p class="error" role="alert">{{ localError }}</p>
       }
       <div class="form-actions">
-        <button type="button" class="btn" (click)="close.emit()">Cancel</button
-        ><button class="btn primary" type="submit" [disabled]="form.invalid">
-          {{ submitLabel() }}
+        <button type="button" class="btn" [disabled]="api.busy()" (click)="close.emit()">
+          Cancel</button
+        ><button class="btn primary" type="submit" [disabled]="form.invalid || api.busy()">
+          {{ api.busy() ? 'Saving…' : submitLabel() }}
         </button>
       </div>
     </form></app-dialog
   >`,
 })
 export class EntryForm implements OnInit {
+  api = inject(ApiService);
   title = input.required<string>();
   fields = input.required<FormField[]>();
   initial = input<FormValues>({});
@@ -107,6 +127,10 @@ export class EntryForm implements OnInit {
   save = output<FormValues>();
   close = output<void>();
   values: FormValues = {};
+  more = false;
+  hasOptions() {
+    return this.fields().some((f) => f.advanced);
+  }
   localError = '';
   ngOnInit() {
     for (const f of this.fields())

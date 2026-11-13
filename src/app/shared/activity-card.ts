@@ -25,7 +25,7 @@ import { RecordForm } from './record-form';
           {{ activity().name }}
         </h3>
         <span
-          >{{ activity().category }}<i>·</i
+          >{{ activity().automation ? 'Automatic' : 'Manual' }} · {{ activity().category }}<i>·</i
           >{{ blocked() ? 'Resting / paused' : schedule(activity()) }}
           @if (activity().quantityTarget > 1) {
             <i>·</i>{{ tracker.entry(activity())?.quantity || 0 }} / {{ activity().quantityTarget }}
@@ -73,6 +73,7 @@ import { RecordForm } from './record-form';
         type="button"
         class="text-button"
         [attr.aria-label]="'Mark a past day for ' + activity().name"
+        [disabled]="!!activity().automation"
         (click)="openHistory()"
       >
         Mark a past day

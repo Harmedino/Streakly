@@ -12,6 +12,7 @@ test('production service worker reloads offline, including lazy routes and saved
   expect(manifest.icons.some((i: { sizes: string }) => i.sizes === '512x512')).toBe(true);
   await page.getByRole('button', { name: 'New activity', exact: true }).first().click();
   const dialog = page.getByRole('dialog');
+  await dialog.locator('details.activity-more > summary').click();
   await dialog.getByLabel('Activity template').selectOption('code');
   await dialog.getByRole('button', { name: 'Create activity', exact: true }).click();
   await expect(dialog).not.toBeVisible();
@@ -25,7 +26,8 @@ test('production service worker reloads offline, including lazy routes and saved
   await page.getByRole('button', { name: 'Complete Code every day', exact: true }).click();
   await expect(page.getByText('1 of 1 completed', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: /My Streaks/ }).click();
-  await expect(page.getByRole('link', { name: /Code every day/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/activities$/);
+  await expect(page.locator('.activity-info').filter({ hasText: 'Code every day' })).toBeVisible();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(
     page.getByRole('button', { name: 'Undo Code every day', exact: true }),

@@ -1,9 +1,11 @@
+import { ApiService } from './api';
+import { reconcileAutomation } from '../core/automation';
 import { syncLearning } from '../core/learning';
 import { emptyLife } from '../models/life';
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { Activity, AppData, Todo, emptyData } from '../models/tracker';
 import { StorageService, validateData } from './storage';
-import { addDays, dateKey, validDate } from '../core/dates';
+import { addDays, dateKey, validDate, todayKey } from '../core/dates';
 import {
   canFreeze,
   completeOn,
@@ -16,9 +18,10 @@ import {
 } from '../core/streaks';
 @Injectable({ providedIn: 'root' })
 export class TrackerService {
+  readonly api = inject(ApiService);
   readonly storage = inject(StorageService);
   readonly data = signal(this.storage.load());
-  readonly today = signal(dateKey());
+  readonly today = signal(todayKey(this.data().preferences.timeZone));
   readonly toast = signal('');
   readonly active = computed(() =>
     orderedActivities(this.data().activities.filter((a) => !a.archived)),
@@ -34,7 +37,7 @@ export class TrackerService {
     if (document.visibilityState !== 'hidden') this.refreshToday();
   };
   refreshToday() {
-    this.today.set(dateKey());
+    this.today.set(todayKey(this.data().preferences.timeZone));
     this.scheduleRollover();
   }
   private scheduleRollover() {
@@ -49,6 +52,14 @@ export class TrackerService {
   }
   constructor() {
     effect(() => {
+      const server = this.api.snapshot();
+      if (server) {
+        this.data.set(server);
+        this.refreshToday();
+      }
+    });
+    effect(() => {
+      if (this.api.enabled()) return;
       const incoming = this.storage.external();
       if (incoming) {
         this.data.set(incoming);
@@ -68,12 +79,19 @@ export class TrackerService {
     clearTimeout(this.timer);
   }
   notify(message: string) {
+    if (this.api.busy()) {
+      void this.api.settled().then((saved) => {
+        if (saved) this.notify(message);
+      });
+      return;
+    }
     this.toast.set(message);
     clearTimeout(this.timer);
     this.timer = setTimeout(() => this.toast.set(''), 4500);
   }
   update(change: (d: AppData) => void): boolean {
-    const incoming = this.storage.external();
+    if (this.api.enabled() && (!this.api.user() || this.api.busy())) return false;
+    const incoming = this.api.enabled() ? null : this.storage.external();
     if (incoming) {
       this.data.set(incoming);
       this.storage.external.set(null);
@@ -82,10 +100,16 @@ export class TrackerService {
     }
     const d = structuredClone(this.data());
     change(d);
+    reconcileAutomation(d);
     d.revision = (this.data().revision ?? 0) + 1;
+    if (this.api.enabled()) return this.api.write(d, this.data().revision ?? 0);
     if (!this.storage.save(d)) return false;
     this.data.set(d);
+    this.refreshToday();
     return true;
+  }
+  settled() {
+    return this.api.enabled() ? this.api.settled() : Promise.resolve(true);
   }
   completed(a: Activity, date = this.today()) {
     return completeOn(a, this.data().completions, date);
@@ -165,6 +189,10 @@ export class TrackerService {
   }
   record(a: Activity, date: string, quantity: number, note = '') {
     this.refreshToday();
+    if (a.automation) {
+      this.notify('Edit the related source record to update an automatic streak.');
+      return false;
+    }
     if (
       !validDate(date) ||
       date > this.today() ||
@@ -409,7 +437,7 @@ export class TrackerService {
     return this.update((d) => {
       const todo = d.todos!.find((t) => t.id === id)!;
       todo.done = !todo.done;
-      todo.completedOn = todo.done ? dateKey() : '';
+      todo.completedOn = todo.done ? this.today() : '';
       todo.updatedAt = new Date().toISOString();
     });
   }
@@ -419,6 +447,7 @@ export class TrackerService {
     return saved;
   }
   clearCompletedTodos(): boolean {
+    if (this.api.enabled()) return this.api.clearCompleted(this.data().revision ?? 0);
     return this.update((d) => (d.todos = (d.todos ?? []).filter((t) => !t.done)));
   }
   dailyNote(date: string, note: string) {
@@ -445,6 +474,7 @@ export class TrackerService {
       life.budgets = [];
       life.savingsGoals = [];
       life.contributions = [];
+      life.targets = [];
       life.incomeCategories = fresh.incomeCategories;
       life.expenseCategories = fresh.expenseCategories;
       for (const g of life.goals) g.savingsId = '';
@@ -474,6 +504,7 @@ export class TrackerService {
   import(raw: unknown) {
     const data = validateData(raw);
     data.revision = (this.data().revision ?? 0) + 1;
+    if (this.api.enabled()) return this.api.write(data, this.data().revision ?? 0, true);
     if (this.storage.save(data, true)) {
       this.data.set(data);
       this.notify('Your backup has been restored.');

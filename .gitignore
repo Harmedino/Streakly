@@ -46,3 +46,9 @@ Thumbs.db
 # Browser test artifacts
 /test-results/
 /playwright-report/
+
+# Backend configuration and output
+.env
+.env.*
+!.env.example
+/dist-server/

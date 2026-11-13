@@ -54,3 +54,15 @@ export function prettyDate(
 ): string {
   return parseDate(key).toLocaleDateString('en-GB', options);
 }
+
+export function todayKey(timeZone?: string, date = new Date()): string {
+  if (!timeZone) return dateKey(date);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const value = (type: string) => parts.find((p) => p.type === type)!.value;
+  return value('year') + '-' + value('month') + '-' + value('day');
+}

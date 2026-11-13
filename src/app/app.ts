@@ -1,3 +1,4 @@
+import { AccountAccess, BrowserMigration } from './shared/account-access';
 import { PwaService } from './services/pwa';
 import { ReminderService } from './services/reminders';
 import {
@@ -26,11 +27,21 @@ import { Onboarding } from './shared/onboarding';
 import { ActivityForm } from './shared/activity-form';
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, Icon, Onboarding, ActivityForm],
+  imports: [
+    AccountAccess,
+    BrowserMigration,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    Icon,
+    Onboarding,
+    ActivityForm,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App {
+  resetRequested = new URLSearchParams(location.search).has('reset');
   navigation = [
     { path: '/', label: 'Overview', icon: 'dashboard' },
     { path: '/activities', label: 'My Streaks', icon: 'flame' },

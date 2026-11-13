@@ -5,6 +5,17 @@ export interface Account {
   openingBalance: number;
   openingDate: string;
 }
+export interface FundingAllocation {
+  incomeId: string;
+  amount: number;
+}
+export interface FinancialTarget {
+  id: string;
+  month: string;
+  kind: 'income' | 'expense' | 'savings';
+  amount: number;
+  source: string;
+}
 export interface Transaction {
   id: string;
   kind: 'income' | 'expense' | 'transfer';
@@ -15,6 +26,7 @@ export interface Transaction {
   description: string;
   accountId: string;
   toAccountId: string;
+  funding?: FundingAllocation[];
   recurringId?: string;
   occurrence?: string;
 }
@@ -43,6 +55,7 @@ export interface SavingsGoal {
   deadline: string;
 }
 export interface SavingsContribution {
+  funding?: FundingAllocation[];
   id: string;
   goalId: string;
   accountId: string;
@@ -51,6 +64,10 @@ export interface SavingsContribution {
   note: string;
 }
 export interface LearningEntry {
+  tags?: string[];
+  pinned?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   id: string;
   topic: string;
   description: string;
@@ -111,6 +128,7 @@ export interface LearningCredit {
   baseNote: string;
 }
 export interface LifeData {
+  targets?: FinancialTarget[];
   accounts: Account[];
   transactions: Transaction[];
   recurring: RecurringTransaction[];
@@ -152,6 +170,7 @@ export const EXPENSE_CATEGORIES = [
 ];
 export function emptyLife(): LifeData {
   return {
+    targets: [],
     accounts: [],
     transactions: [],
     recurring: [],

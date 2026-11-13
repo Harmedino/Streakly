@@ -18,6 +18,7 @@ test('templates, past progress, freezes, planned rest, pause and favorite organi
   });
   await page.getByRole('button', { name: 'New activity', exact: true }).first().click();
   const dialog = page.getByRole('dialog');
+  await dialog.locator('details.activity-more > summary').click();
   await dialog.getByLabel('Activity template').selectOption('code');
   await expect(dialog.getByLabel('Activity name')).toHaveValue('Code every day');
   await dialog.getByLabel('Start date').fill(dates.old);
@@ -57,6 +58,7 @@ test('duration progress, daily notes and real multi-tab synchronization', async 
   await page.getByRole('button', { name: "I'll explore first" }).click();
   await page.getByRole('button', { name: 'New activity', exact: true }).first().click();
   let dialog = page.getByRole('dialog');
+  await dialog.locator('details.activity-more > summary').click();
   await dialog.getByLabel('Activity template').selectOption('study');
   await expect(dialog.getByLabel('Progress type', { exact: true })).toHaveValue('duration');
   await dialog.getByRole('button', { name: 'Create activity', exact: true }).click();

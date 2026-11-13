@@ -1,3 +1,4 @@
+import { ApiService } from './services/api';
 import { provideServiceWorker } from '@angular/service-worker';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -22,6 +23,7 @@ describe('Application shell', () => {
     vi.useRealTimers();
   });
   it('renders navigation and persists theme changes', async () => {
+    TestBed.inject(ApiService).ready.set(true);
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.brand').textContent).toContain('streakly');

@@ -69,7 +69,7 @@ export class Todos {
           b.createdAt.localeCompare(a.createdAt),
       ),
   );
-  add() {
+  async add() {
     this.error = '';
     if (!this.title.trim()) {
       this.error = 'Give your task a name.';
@@ -79,7 +79,10 @@ export class Todos {
       this.error = 'Choose a valid due date.';
       return;
     }
-    if (this.tracker.addTodo(this.title, this.dueDate, this.scheduledDate, this.priority)) {
+    if (
+      this.tracker.addTodo(this.title, this.dueDate, this.scheduledDate, this.priority) &&
+      (await this.tracker.settled())
+    ) {
       this.title = '';
       this.dueDate = '';
       this.filter.set('pending');
@@ -93,7 +96,7 @@ export class Todos {
     this.editPriority = todo.priority ?? 'medium';
     this.editError = '';
   }
-  save() {
+  async save() {
     if (!this.editTitle.trim() || (this.editDueDate && !validDate(this.editDueDate))) {
       this.editError = 'Add a task name and a valid optional due date.';
       return;
@@ -105,7 +108,8 @@ export class Todos {
         this.editDueDate,
         this.editScheduledDate,
         this.editPriority,
-      )
+      ) &&
+      (await this.tracker.settled())
     )
       this.editing.set(null);
     else
@@ -113,10 +117,12 @@ export class Todos {
         this.tracker.storage.error() ||
         'This task changed. Cancel and reopen it to use the latest version.';
   }
-  remove() {
-    if (this.tracker.deleteTodo(this.deleting()!.id)) this.deleting.set(null);
+  async remove() {
+    if (this.tracker.deleteTodo(this.deleting()!.id) && (await this.tracker.settled()))
+      this.deleting.set(null);
   }
-  clear() {
-    if (this.tracker.clearCompletedTodos()) this.clearing.set(false);
+  async clear() {
+    if (this.tracker.clearCompletedTodos() && (await this.tracker.settled()))
+      this.clearing.set(false);
   }
 }

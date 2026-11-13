@@ -133,13 +133,16 @@ export class RecordForm implements OnInit {
     this.selectedDate.set(this.date());
     this.loadEntry();
   }
-  save() {
+  async save() {
     if (this.dateError) return;
     if ((this.tracker.data().revision ?? 0) !== this.initialRevision) {
       this.error = 'Data changed while this form was open. Close and reopen it before saving.';
       return;
     }
-    if (this.tracker.record(this.activity(), this.selectedDate(), this.quantity, this.note))
+    if (
+      this.tracker.record(this.activity(), this.selectedDate(), this.quantity, this.note) &&
+      (await this.tracker.settled())
+    )
       this.close.emit();
   }
 }

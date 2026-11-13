@@ -3,13 +3,19 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:e2e": "playwright test",
     "format": "prettier --write src e2e playwright.config.ts README.md",
-    "test:pwa": "npm run build && playwright test --config playwright.pwa.config.ts"
+    "test:pwa": "npm run build && playwright test --config playwright.pwa.config.ts",
+    "server": "node --env-file-if-exists=.env --import tsx server/index.ts",
+    "server:check": "tsc -p server/tsconfig.json",
+    "test:api": "NODE_ENV=test node --import tsx --test server/**/*.test.ts",
+    "server:build": "tsc -p server/tsconfig.json --noEmit false",
+    "server:start": "node --env-file-if-exists=.env dist-server/server/index.js",
+    "test:backend:e2e": "playwright test --config playwright.backend.config.ts"
   },
   "private": true,
   "packageManager": "npm@11.9.0",
@@ -23,16 +29,29 @@
     "@angular/service-worker": "^21.2.25",
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@lucide/angular": "^1.66.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.4",
+    "helmet": "^8.3.0",
+    "mongoose": "^9.12.1",
+    "nodemailer": "^10.5.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@angular/build": "^21.2.29",
     "@angular/cli": "^21.2.29",
     "@angular/compiler-cli": "^21.2.0",
     "@playwright/test": "^1.64.1",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/nodemailer": "^8.0.2",
+    "@types/supertest": "^7.2.1",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
+    "supertest": "^7.3.2",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"
   }

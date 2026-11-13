@@ -43,6 +43,34 @@ import { ConfirmDialog } from '../../shared/dialog';
             ><button class="btn primary" [disabled]="form.invalid">Save name</button>
           </form>
         </section>
+        <section class="panel settings-section">
+          <h2>Currency & calendar</h2>
+          <p class="helper">
+            Currency applies to the whole ledger. Existing money is never converted. Choose it
+            before recording finances, or export and reset Finance first. Dates use your chosen IANA
+            time zone across devices.
+          </p>
+          <form (ngSubmit)="saveLocale()">
+            <label
+              >Ledger currency<select name="currency" [(ngModel)]="currency">
+                <option value="NGN">Nigerian Naira (₦)</option>
+                <option value="USD">US Dollar ($)</option>
+                <option value="EUR">Euro (€)</option>
+                <option value="GBP">Pound sterling (£)</option>
+                <option value="CAD">Canadian Dollar (CA$)</option>
+              </select></label
+            ><label
+              >Time zone<input
+                name="timezone"
+                [(ngModel)]="timeZone"
+                placeholder="Africa/Lagos"
+                required /></label
+            ><button class="btn">Save currency & time zone</button>
+          </form>
+          @if (localeError()) {
+            <p class="error" role="alert">{{ localeError() }}</p>
+          }
+        </section>
         <section id="appearance" class="panel settings-section">
           <span class="eyebrow">SET THE MOOD</span>
           <h2>Appearance</h2>
@@ -144,12 +172,18 @@ import { ConfirmDialog } from '../../shared/dialog';
           <app-icon name="download" [size]="27" />
           <h2>Your data, in your hands.</h2>
           <p class="muted">
-            Everything is saved in this browser's LocalStorage. There is no account, server, or
-            automatic sync between devices.
+            {{
+              tracker.api.enabled()
+                ? 'Your signed-in workspace is stored in MongoDB on your Streakly server. Export backups regularly.'
+                : 'These legacy records are stored in this browser. Connect to a Streakly server to migrate them safely.'
+            }}
           </p>
           <p class="muted">
-            Clearing browser data removes your history. Export a backup regularly, or move it to
-            another browser.
+            {{
+              tracker.api.enabled()
+                ? 'Clearing browser storage does not delete your MongoDB records. Sign in on another device connected to this same server. Keep independent JSON backups in case the server database is lost.'
+                : 'Clearing browser data removes legacy history. Export a backup regularly, or migrate it to your server.'
+            }}
           </p>
           @if (tracker.storage.recovery()) {
             <p class="notice">
@@ -174,25 +208,32 @@ import { ConfirmDialog } from '../../shared/dialog';
           }
           <button
             class="btn full-width"
-            [disabled]="!tracker.storage.safetyBackup()"
+            [disabled]="!tracker.api.enabled() && !tracker.storage.safetyBackup()"
             (click)="downloadSafety()"
           >
             Export last pre-restore backup
           </button>
           <p class="helper">
-            Before any import or reset, the current stored data is kept as a safety backup in this
-            browser. Export it here for safekeeping. A full browser clear removes this backup too.
+            {{
+              tracker.api.enabled()
+                ? 'Before import, migration or reset, MongoDB retains the previous workspace as an owner-protected safety backup. Export it here for an independent copy.'
+                : 'Before import or reset, this browser keeps a safety copy. Export it here; clearing browser data removes it.'
+            }}
           </p>
           <p class="helper">
-            Imports are checked before they replace your current data. Maximum file size: 20 MB.
+            Imports are checked before they replace your current data. Server imports support up to
+            8 MB. Legacy browser imports support up to 20 MB.
           </p>
         </section>
         <section id="reset" class="panel settings-section">
           <span class="eyebrow">A CONSIDERED FRESH START</span>
           <h2>Reset a section</h2>
           <p class="muted">
-            Export a full backup first. A local pre-reset backup is also required before anything is
-            replaced.
+            {{
+              tracker.api.enabled()
+                ? 'Export a full backup first. The server also creates a safety backup before resetting any section.'
+                : 'Export a full backup first. A local safety backup is required before replacement.'
+            }}
           </p>
           <label
             >Section to reset<select [(ngModel)]="resetChoice">
@@ -227,7 +268,10 @@ import { ConfirmDialog } from '../../shared/dialog';
         "
         label="Confirm reset"
         (cancel)="resetting.set(false)"
-        (confirm)="reset()"
+        [requireWord]="resetChoice === 'all' ? 'RESET' : ''"
+        [offerBackup]="true"
+        (backup)="export()"
+        (confirm)="reset($event)"
       />
     }
     @if (pending()) {
@@ -256,6 +300,34 @@ export class Settings {
   pwa = inject(PwaService);
   reminders = inject(ReminderService);
   name = this.tracker.data().preferences.name;
+  currency = this.tracker.data().preferences.currency ?? 'NGN';
+  timeZone =
+    this.tracker.data().preferences.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  localeError = signal('');
+  async saveLocale() {
+    this.localeError.set('');
+    try {
+      new Intl.DateTimeFormat('en', { timeZone: this.timeZone }).format();
+      const d = this.tracker.data();
+      if (
+        this.currency !== (d.preferences.currency ?? 'NGN') &&
+        (d.life!.accounts.length || d.life!.transactions.length)
+      )
+        throw new Error(
+          'Changing currency does not convert money. Export and reset Finance before choosing a new ledger currency.',
+        );
+      if (
+        this.tracker.update((d) => {
+          d.preferences.currency = this.currency;
+          d.preferences.timeZone = this.timeZone;
+        }) &&
+        (await this.tracker.settled())
+      )
+        this.tracker.notify('Currency and calendar preferences saved.');
+    } catch (e) {
+      this.localeError.set(e instanceof Error ? e.message : 'Check your preferences.');
+    }
+  }
   category = '';
   editingCategory = '';
   categoryName = '';
@@ -278,11 +350,30 @@ export class Settings {
   resetChoice = 'finance';
   resetRevision = 0;
   resetting = signal(false);
-  downloadSafety() {
+  async downloadSafety() {
+    if (this.tracker.api.enabled()) {
+      try {
+        downloadFile(
+          JSON.stringify(await this.tracker.api.request('/backup/previous')),
+          'streakly-server-safety-backup.json',
+        );
+      } catch (e) {
+        this.error.set(e instanceof Error ? e.message : 'Backup unavailable.');
+      }
+      return;
+    }
     const backup = this.tracker.storage.safetyBackup();
     if (backup) downloadFile(backup, 'streakly-pre-restore-' + dateKey() + '.json');
   }
-  reset() {
+  async reset(typed = '') {
+    if (this.resetChoice === 'all' && typed !== 'RESET') return;
+    if (this.tracker.api.enabled()) {
+      if (await this.tracker.api.reset(this.resetChoice, typed)) {
+        this.resetting.set(false);
+        this.tracker.notify('Selected records reset. A server backup was created first.');
+      }
+      return;
+    }
     if (
       (this.tracker.data().revision ?? 0) !== this.resetRevision ||
       this.tracker.storage.external()
@@ -334,7 +425,8 @@ export class Settings {
     this.error.set('');
     if (!file) return;
     try {
-      if (file.size > 20 * 1024 * 1024) throw new Error('Choose a backup smaller than 20 MB.');
+      if (file.size > (this.tracker.api.enabled() ? 8 : 20) * 1024 * 1024)
+        throw new Error('Choose a backup smaller than 20 MB.');
       const validated = validateData(JSON.parse(await file.text()));
       this.pendingRevision = this.tracker.data().revision ?? 0;
       this.pending.set(validated);
@@ -343,7 +435,7 @@ export class Settings {
     }
     input.value = '';
   }
-  import() {
+  async import() {
     if (
       (this.tracker.data().revision ?? 0) !== this.pendingRevision ||
       this.tracker.storage.external()
@@ -354,7 +446,7 @@ export class Settings {
       );
       return;
     }
-    if (this.tracker.import(this.pending())) {
+    if (this.tracker.import(this.pending()) && (await this.tracker.settled())) {
       this.name = this.tracker.data().preferences.name;
       this.pending.set(null);
     }

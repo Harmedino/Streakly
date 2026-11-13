@@ -21,6 +21,8 @@ export class ActivityForm implements OnInit {
   error = '';
   initialRevision = 0;
   templates = ACTIVITY_TEMPLATES;
+  tracking = '';
+  minimum = 0;
   templateKey = '';
   customCategory = '';
   days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -45,6 +47,10 @@ export class ActivityForm implements OnInit {
   };
   ngOnInit() {
     this.initialRevision = this.tracker.data().revision ?? 0;
+    this.tracking = this.activity()?.automation?.trigger ?? '';
+    this.minimum =
+      (this.activity()?.automation?.minimum ?? 0) /
+      (this.activity()?.automation?.trigger === 'expenses' ? 100 : 1);
     if (this.activity()) {
       this.model = structuredClone(this.activity()!);
       this.model.progressType ??= this.model.quantityTarget > 1 ? 'quantity' : 'binary';
@@ -69,7 +75,7 @@ export class ActivityForm implements OnInit {
       ? this.model.weekdays.filter((d) => d !== n)
       : [...this.model.weekdays, n];
   }
-  save() {
+  async save() {
     if ((this.tracker.data().revision ?? 0) !== this.initialRevision) {
       this.error =
         'Your data changed while this form was open. Close and reopen it to use the latest version.';
@@ -130,7 +136,22 @@ export class ActivityForm implements OnInit {
       this.error = 'Start date cannot move past existing history.';
       return;
     }
-    if (this.tracker.saveActivity(a)) {
+    a.automation = this.tracking
+      ? {
+          trigger: this.tracking as NonNullable<Activity['automation']>['trigger'],
+          minimum: this.tracking === 'expenses' ? Math.round(this.minimum * 100) : this.minimum,
+        }
+      : undefined;
+    if (a.automation) {
+      if (!['daily', 'weekly'].includes(a.frequency)) {
+        this.error = 'Automatic tracking supports daily or weekly frequency.';
+        return;
+      }
+      a.quantityTarget = 1;
+      a.progressType = 'binary';
+      a.unit = '';
+    }
+    if (this.tracker.saveActivity(a) && (await this.tracker.settled())) {
       this.saved.emit();
       this.close.emit();
     }

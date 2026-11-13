@@ -18,7 +18,8 @@ export class Reports {
   date = signal(this.tracker.today());
   period = signal<'week' | 'month'>('week');
   pretty = prettyDate;
-  cash = naira;
+  Math = Math;
+  cash = (amount: number) => naira(amount, this.tracker.data().preferences.currency);
   range = computed(() => reportRange(this.period(), this.date()));
   end = computed(() =>
     this.range().end < this.tracker.today() ? this.range().end : this.tracker.today(),

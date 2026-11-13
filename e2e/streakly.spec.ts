@@ -8,6 +8,7 @@ async function create(page: Page, name = 'Read a little', quantity = 1) {
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Activity name').fill(name);
   if (quantity > 1) {
+    await dialog.locator('details.activity-more > summary').click();
     await dialog.getByLabel('Progress type', { exact: true }).selectOption('quantity');
     await dialog.getByLabel('Daily quantity target').fill(String(quantity));
   }
@@ -22,6 +23,7 @@ test('onboarding, quantity completion, note, persistence and undo', async ({ pag
   await page.getByRole('button', { name: "Let's plant your first habit" }).click();
   const form = page.getByRole('dialog');
   await form.getByLabel('Activity name').fill('Read a little');
+  await form.locator('details.activity-more > summary').click();
   await form.getByLabel('Progress type', { exact: true }).selectOption('quantity');
   await form.getByLabel('Daily quantity target').fill('20');
   await form.getByLabel('Unit', { exact: false }).fill('pages');
@@ -42,10 +44,11 @@ test('onboarding, quantity completion, note, persistence and undo', async ({ pag
 test('edit, custom categories, archive, restore and confirmed deletion', async ({ page }) => {
   await start(page);
   await create(page);
-  await page.getByRole('link', { name: 'Read a little' }).click();
+  await page.locator('.activity-info').filter({ hasText: 'Read a little' }).click();
   await page.getByRole('button', { name: 'Edit activity' }).click();
   const form = page.getByRole('dialog');
   await form.getByLabel('Activity name').fill('Read with intention');
+  await form.locator('details.activity-more > summary').click();
   await form.getByRole('combobox', { name: 'Category', exact: true }).selectOption('__custom');
   await form.getByLabel('New category').fill('Quiet time');
   await form.getByRole('button', { name: 'Save changes' }).click();
@@ -67,7 +70,7 @@ test('historical progress, actual insights, backup validation and theme persiste
   await start(page);
   await create(page);
   await page.getByRole('button', { name: 'Complete Read a little', exact: true }).click();
-  await page.getByRole('link', { name: 'Read a little' }).click();
+  await page.locator('.activity-info').filter({ hasText: 'Read a little' }).click();
   await expect(page.getByText('1 little wins')).toBeVisible();
   const past = await page.evaluate(() => {
     const d = new Date();
@@ -79,6 +82,7 @@ test('historical progress, actual insights, backup validation and theme persiste
     };
   });
   await page.getByRole('button', { name: 'Edit activity' }).click();
+  await page.getByRole('dialog').locator('details.activity-more > summary').click();
   await page.getByLabel('Start date').fill(past.key);
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.goto('/calendar');

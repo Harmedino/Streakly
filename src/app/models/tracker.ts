@@ -5,6 +5,7 @@ export interface Pause {
   start: string;
   end: string | null;
 }
+export type AutomationTrigger = 'learning' | 'jobs' | 'expenses' | 'journal' | 'planning';
 export interface Activity {
   id: string;
   name: string;
@@ -26,6 +27,7 @@ export interface Activity {
   restDays?: string[];
   freezes?: string[];
   pauses?: Pause[];
+  automation?: { trigger: AutomationTrigger; minimum?: number };
   pinned?: boolean;
   order?: number;
 }
@@ -49,6 +51,14 @@ export interface Todo {
 export interface AppData {
   version: 1 | 2 | 3;
   life?: LifeData;
+  autoCredits?: {
+    activityId: string;
+    date: string;
+    baseQuantity: number;
+    baseNote: string;
+    sources: string[];
+    trigger: AutomationTrigger;
+  }[];
   revision?: number;
   todos?: Todo[];
   dailyNotes?: Record<string, string>;
@@ -57,6 +67,8 @@ export interface AppData {
     name: string;
     theme: 'light' | 'dark';
     onboarded: boolean;
+    currency?: string;
+    timeZone?: string;
     compact?: boolean;
     remindersEnabled?: boolean;
   };

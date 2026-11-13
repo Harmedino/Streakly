@@ -573,3 +573,7 @@
     (confirm)="post()"
   />
 }
+
+@if (tab() === 'Salary' || tab() === 'Targets') {
+  <app-financial-extras [view]="tab()" [month]="month()" />
+}

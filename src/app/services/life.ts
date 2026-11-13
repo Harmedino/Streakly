@@ -43,12 +43,14 @@ export class LifeService {
       const saved = this.tracker.update((d) => {
         d.life ??= emptyLife();
         change(d.life, d);
-        validateLife(d.life, d.activities);
+        validateLife(d.life, d.activities, this.tracker.today());
       });
       if (saved) this.tracker.notify(message);
       else
         this.error.set(
-          this.tracker.storage.error() || 'Your data changed in another tab. Please retry.',
+          this.tracker.api.error() ||
+            this.tracker.storage.error() ||
+            'Your data changed in another tab. Please retry.',
         );
       return saved;
     } catch (e) {
@@ -150,7 +152,7 @@ export class LifeService {
           completedOn: m.completedOn || dateKey(),
         }));
       } else if (g.progress === 100) g.status = 'completed';
-      g.updatedOn = dateKey();
+      g.updatedOn = this.tracker.today();
       upsert(l.goals, g);
       if (from !== g.progress)
         l.goalEvents.push({

@@ -12,9 +12,13 @@ const amount = (v: unknown, positive = true) =>
   Number.isSafeInteger(v) &&
   (positive ? v > 0 : true) &&
   Math.abs(v) <= 1e14;
-const past = (v: unknown) => validDate(v) && v <= dateKey();
 const url = (v: unknown) => text(v, 2000) && (!v || /^https?:\/\/[^\s]+$/i.test(v));
-export function validateLife(raw: unknown, activities: Activity[]): asserts raw is LifeData {
+export function validateLife(
+  raw: unknown,
+  activities: Activity[],
+  today = dateKey(),
+): asserts raw is LifeData {
+  const past = (v: unknown) => validDate(v) && v <= today;
   check(raw && typeof raw === 'object', 'Invalid life-management data.');
   const d = raw as LifeData;
   for (const key of [
@@ -132,32 +136,55 @@ export function validateLife(raw: unknown, activities: Activity[]): asserts raw 
     budgets.add(key);
   }
   for (const g of d.savingsGoals)
-    check(named(g.name) && amount(g.target) && validDate(g.deadline), 'Invalid savings goal.');
+    check(
+      named(g.name) && amount(g.target) && (g.deadline === '' || validDate(g.deadline)),
+      'Invalid savings goal.',
+    );
   for (const c of d.contributions)
     check(
       amount(c.amount, false) && c.amount !== 0 && past(c.date) && text(c.note),
       'Invalid savings contribution.',
     );
-  for (const e of d.learning)
+  for (const e of d.learning) {
+    check(text(e.topic, 200), 'The note title must be 200 characters or fewer.');
     check(
-      named(e.topic, 200) &&
-        text(e.description, 5000) &&
-        named(e.category, 60) &&
-        Number.isInteger(e.minutes) &&
-        e.minutes > 0 &&
-        e.minutes <= 1440 &&
-        past(e.date) &&
-        text(e.resources, 4000) &&
+      text(e.description, 50000) &&
+        text(e.notes, 50000) &&
+        !!(e.description.trim() || e.notes.trim() || e.topic.trim()),
+      'Write some note content before saving.',
+    );
+    check(text(e.category, 60), 'The learning category must be 60 characters or fewer.');
+    check(
+      Number.isInteger(e.minutes) && e.minutes >= 0 && e.minutes <= 1440,
+      'Time spent must be a whole number from 0 to 1440 minutes.',
+    );
+    check(past(e.date), 'Choose today or an earlier learning date.');
+    check(
+      text(e.resources, 4000) &&
         e.resources
           .split(/\s+/)
           .filter(Boolean)
-          .every((link) => url(link)) &&
-        text(e.notes, 5000) &&
-        text(e.next, 1000) &&
-        text(e.activityId, 100) &&
-        (!e.activityId || activities.some((a) => a.id === e.activityId && e.date >= a.startDate)),
-      'Invalid learning entry or activity link.',
+          .every((link) => url(link)),
+      'Related links must start with http:// or https://. Leave them empty if not needed.',
     );
+    check(text(e.next, 1000), 'Next steps must be 1,000 characters or fewer.');
+    check(
+      text(e.activityId, 100) &&
+        (!e.activityId || activities.some((a) => a.id === e.activityId && e.date >= a.startDate)),
+      'The linked streak no longer exists or starts after this note. Unlink it or choose another streak.',
+    );
+    check(
+      e.tags === undefined ||
+        (Array.isArray(e.tags) && e.tags.length <= 30 && e.tags.every((t) => named(t, 40))),
+      'Use up to 30 tags of 40 characters each.',
+    );
+    check(e.pinned === undefined || typeof e.pinned === 'boolean', 'Invalid note pin.');
+    for (const stamp of [e.createdAt, e.updatedAt])
+      check(
+        stamp === undefined || (text(stamp, 50) && Number.isFinite(Date.parse(stamp))),
+        'Invalid note timestamp.',
+      );
+  }
   const credits = new Set<string>();
   for (const c of d.learningCredits) {
     const key = c.activityId + ':' + c.date;
@@ -185,8 +212,7 @@ export function validateLife(raw: unknown, activities: Activity[]): asserts raw 
         text(g.description, 5000) &&
         named(g.category, 60) &&
         validDate(g.startDate) &&
-        validDate(g.deadline) &&
-        g.deadline >= g.startDate &&
+        (g.deadline === '' || (validDate(g.deadline) && g.deadline >= g.startDate)) &&
         ['low', 'medium', 'high'].includes(g.priority) &&
         Number.isFinite(g.progress) &&
         g.progress >= 0 &&
@@ -256,5 +282,62 @@ export function validateLife(raw: unknown, activities: Activity[]): asserts raw 
         'Linked learning is missing its streak credit.',
       );
   }
+  check(
+    d.targets === undefined || (Array.isArray(d.targets) && d.targets.length <= 10000),
+    'Targets must be a list of at most 10,000 records.',
+  );
+  const targets = new Set<string>();
+  const targetPeriods = new Set<string>();
+  for (const t of d.targets ?? []) {
+    check(
+      named(t.id, 100) &&
+        !targets.has(t.id) &&
+        validDate(t.month + '-01') &&
+        ['income', 'expense', 'savings'].includes(t.kind) &&
+        amount(t.amount) &&
+        text(t.source, 120),
+      'A target needs a valid month, type and positive amount.',
+    );
+    const key = t.month + ':' + t.kind + ':' + t.source;
+    check(
+      !targetPeriods.has(key),
+      'A target already exists for this month, type and source. Edit that target instead.',
+    );
+    targetPeriods.add(key);
+    targets.add(t.id);
+  }
+  const allocations = new Map<string, number>();
+  for (const row of [...d.transactions, ...d.contributions]) {
+    const parts = row.funding ?? [];
+    check(Array.isArray(parts) && parts.length <= 50, 'Use up to 50 funding splits.');
+    const isTransaction = 'kind' in row;
+    check(
+      !parts.length || !isTransaction || row.kind === 'expense',
+      'Only expenses or savings contributions can be funded by income.',
+    );
+    let allocated = 0;
+    const refs = new Set<string>();
+    for (const p of parts) {
+      const income = d.transactions.find((t) => t.id === p.incomeId && t.kind === 'income');
+      check(
+        income &&
+          income.date <= row.date &&
+          amount(p.amount, false) &&
+          p.amount !== 0 &&
+          Math.sign(p.amount) === Math.sign(row.amount) &&
+          !refs.has(p.incomeId),
+        'Choose a distinct, earlier income payment and a valid funding amount.',
+      );
+      refs.add(p.incomeId);
+      allocated += Math.abs(p.amount);
+      allocations.set(p.incomeId, (allocations.get(p.incomeId) ?? 0) + p.amount);
+    }
+    check(allocated <= Math.abs(row.amount), 'Funding splits cannot exceed the recorded amount.');
+  }
+  for (const [id, total] of allocations)
+    check(
+      total >= 0 && total <= d.transactions.find((t) => t.id === id)!.amount,
+      'Income funding cannot be spent or saved twice. Release or adjust linked allocations first.',
+    );
   assertFinance(d);
 }

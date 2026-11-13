@@ -268,7 +268,8 @@ export class Detail {
       this.tracker.notify('This is before your activity started.');
     else this.selected.set(d);
   }
-  remove() {
-    if (this.tracker.delete(this.activity()!)) this.router.navigateByUrl('/activities');
+  async remove() {
+    if (this.tracker.delete(this.activity()!) && (await this.tracker.settled()))
+      this.router.navigateByUrl('/activities');
   }
 }

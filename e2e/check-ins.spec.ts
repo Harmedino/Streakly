@@ -15,6 +15,7 @@ test('a user can mark past days directly from an activity without completing tod
   });
   await page.getByRole('button', { name: 'New activity', exact: true }).first().click();
   const dialog = page.getByRole('dialog');
+  await dialog.locator('details.activity-more > summary').click();
   await dialog.getByLabel('Activity template').selectOption('code');
   await dialog.getByLabel('Start date', { exact: true }).fill(dates.older);
   await dialog.getByRole('button', { name: 'Create activity', exact: true }).click();
@@ -52,6 +53,7 @@ test('an open dashboard starts a new manual check-in at midnight without waiting
   await page.getByRole('button', { name: "I'll explore first" }).click();
   await page.getByRole('button', { name: 'New activity', exact: true }).first().click();
   const dialog = page.getByRole('dialog');
+  await dialog.locator('details.activity-more > summary').click();
   await dialog.getByLabel('Activity template').selectOption('code');
   await dialog.getByRole('button', { name: 'Create activity', exact: true }).click();
   await expect(dialog).not.toBeVisible();
