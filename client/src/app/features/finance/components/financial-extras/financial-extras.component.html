@@ -1,0 +1,254 @@
+@if (view() === 'Salary') {
+  <div class="section-heading module-heading">
+    <div>
+      <span class="eyebrow">REAL PAYMENT RELATIONSHIPS</span>
+      <h2>Salary & income funding</h2>
+      <p>
+        Choose a payment to see only the spending and savings explicitly linked to it. Unassigned
+        expenses are never assumed to come from salary.
+      </p>
+    </div>
+  </div>
+  <label
+    >Income payment<select
+      aria-label="Income payment"
+      [ngModel]="selected()"
+      (ngModelChange)="selected.set($event)"
+    >
+      <option value="">Choose a payment</option>
+      @for (t of incomes(); track t.id) {
+        <option [value]="t.id">{{ t.date }} · {{ t.source }} · {{ cash(t.amount) }}</option>
+      }
+    </select></label
+  >
+  @if (payment(); as p) {
+    <div class="life-stats">
+      <div>
+        <span>Payment received</span><strong>{{ cash(p.amount) }}</strong
+        ><small>{{ p.source }}</small>
+      </div>
+      <div>
+        <span>Linked spending</span><strong>{{ cash(spent()) }}</strong
+        ><small>Explicit expense allocations</small>
+      </div>
+      <div>
+        <span>Linked savings</span><strong>{{ cash(saved()) }}</strong
+        ><small>Allocations minus withdrawals</small>
+      </div>
+      <div>
+        <span>Payment remaining</span><strong>{{ cash(p.amount - spent() - saved()) }}</strong
+        ><small>Unallocated part of this payment</small>
+      </div>
+    </div>
+    <app-progress [value]="Math.min(100, ((spent() + saved()) / p.amount) * 100)" />
+    <p class="helper">
+      {{ Math.round(((spent() + saved()) / p.amount) * 100) }}% allocated. This funding view does
+      not change account balances.
+    </p>
+    <button class="btn primary" (click)="openFunding()">Link spending or savings</button>
+    <section class="panel spaced-panel allocation-history">
+      <h2>Spending by category</h2>
+      @for (group of categories(); track group.name) {
+        <div class="distribution-row">
+          <div>
+            <span>{{ group.name }}</span
+            ><strong>{{ cash(group.amount) }}</strong>
+          </div>
+          <app-progress [value]="spent() ? (group.amount / spent()) * 100 : 0" />
+        </div>
+      } @empty {
+        <p class="helper">No expenses are linked to this payment yet.</p>
+      }
+    </section>
+  }
+  <section class="panel spaced-panel">
+    <h2>Payment history</h2>
+    @for (t of incomes(); track t.id) {
+      <button class="funding-history" (click)="selected.set(t.id)">
+        <span
+          >{{ t.source }}<small>{{ t.date }} · {{ t.category }}</small></span
+        ><strong>{{ cash(t.amount) }}</strong>
+      </button>
+    } @empty {
+      <app-empty
+        title="Your salary has a story."
+        description="Record income first. Then link the spending and savings you want to attribute to that payment."
+      />
+    }
+  </section>
+  @if (funding()) {
+    <app-dialog title="Allocate funding" (close)="funding.set(false)"
+      ><p class="helper">
+        Choose an existing expense or savings contribution, then split its funding across recorded
+        income payments. Allocations cannot exceed the record or reuse money already allocated
+        elsewhere.
+      </p>
+      <label
+        >Record to fund<select
+          aria-label="Record to fund"
+          [(ngModel)]="fundedKey"
+          (ngModelChange)="loadParts()"
+        >
+          <option value="">Choose a record</option>
+          @for (row of eligible(); track row.key) {
+            <option [value]="row.key">{{ row.label }} · {{ cash(row.record.amount) }}</option>
+          }
+        </select></label
+      >
+      @if (funded()) {
+        <div class="funding-parts">
+          @for (part of parts; track $index) {
+            <div>
+              <label
+                >Income source<select aria-label="Income source" [(ngModel)]="part.incomeId">
+                  <option value="">Choose a payment</option>
+                  @for (t of allIncome(); track t.id) {
+                    <option [value]="t.id">
+                      {{ t.source }} · {{ t.date }} · {{ cash(t.amount) }}
+                    </option>
+                  }
+                </select></label
+              ><label
+                >Amount<input
+                  type="number"
+                  [(ngModel)]="part.amount"
+                  min="0.01"
+                  step="0.01" /></label
+              ><button
+                class="icon-button"
+                aria-label="Remove funding split"
+                (click)="parts.splice($index, 1)"
+              >
+                ×
+              </button>
+            </div>
+          }
+        </div>
+        <button
+          class="text-button"
+          (click)="parts.push({ incomeId: '', amount: '' })"
+          [disabled]="parts.length >= 50"
+        >
+          + Add another funding source
+        </button>
+        <p class="helper">
+          Leave part of the amount unallocated if its source is unknown. Remove all splits to unlink
+          funding. Withdrawals release their linked income allocation.
+        </p>
+      }
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      <div class="form-actions">
+        <button class="btn" (click)="funding.set(false)">Cancel</button
+        ><button
+          class="btn primary"
+          [disabled]="!funded() || life.tracker.api.busy()"
+          (click)="saveFunding()"
+        >
+          Save allocations
+        </button>
+      </div></app-dialog
+    >
+  }
+}
+@if (view() === 'Targets') {
+  <div class="section-heading module-heading">
+    <div>
+      <span class="eyebrow">A PLAN FOR YOUR MONEY</span>
+      <h2>Monthly targets</h2>
+      <p>
+        Track income, spending limits and net savings contributions. Category spending limits remain
+        in Budgets.
+      </p>
+    </div>
+    <button class="btn primary" (click)="openTarget()">Add target</button>
+  </div>
+  <div class="module-grid">
+    @for (t of targets(); track t.id) {
+      <section class="panel spaced-panel">
+        <span class="eyebrow">{{ t.kind }} · {{ t.source || 'All sources' }}</span>
+        <h2>
+          {{ cash(actual(t)) }} <span class="muted small">/ {{ cash(t.amount) }}</span>
+        </h2>
+        <app-progress [value]="Math.max(0, Math.min(100, (actual(t) / t.amount) * 100))" />
+        <p class="helper">
+          {{ Math.round((actual(t) / t.amount) * 100) }}% ·
+          {{ cash(Math.abs(t.amount - actual(t))) }}
+          {{
+            actual(t) > t.amount
+              ? t.kind === 'expense'
+                ? 'over your limit'
+                : 'above target'
+              : t.kind === 'expense'
+                ? 'remaining before the limit'
+                : 'still to go'
+          }}
+        </p>
+        <div class="quick-actions">
+          <button class="text-button" (click)="openTarget(t)">Edit target</button
+          ><button class="text-button destructive" (click)="deleting.set(t)">Delete target</button>
+        </div>
+      </section>
+    } @empty {
+      <app-empty
+        title="Give this month a direction."
+        description="Choose an income goal, an expense ceiling or a savings target. Progress uses actual saved records."
+      />
+    }
+  </div>
+  @if (targetEditor()) {
+    <app-dialog
+      [title]="targetId ? 'Edit target' : 'New monthly target'"
+      (close)="targetEditor.set(false)"
+      ><form (ngSubmit)="saveTarget()" #form="ngForm">
+        <label
+          >Target type<select aria-label="Target type" name="kind" [(ngModel)]="targetKind">
+            <option value="income">Earn at least</option>
+            <option value="expense">Spend no more than</option>
+            <option value="savings">Save at least</option>
+          </select></label
+        ><label
+          >Amount<input
+            type="number"
+            name="amount"
+            [(ngModel)]="targetAmount"
+            min="0.01"
+            step="0.01"
+            required
+        /></label>
+        <details>
+          <summary>More Options</summary>
+          <label>Month<input type="month" name="month" [(ngModel)]="targetMonth" required /></label>
+          @if (targetKind === 'income') {
+            <label
+              >Income source · optional<input
+                name="source"
+                [(ngModel)]="targetSource"
+                maxlength="120"
+                placeholder="Leave blank for all income"
+            /></label>
+          }
+        </details>
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="targetEditor.set(false)">Cancel</button
+          ><button class="btn primary" [disabled]="form.invalid || life.tracker.api.busy()">
+            Save target
+          </button>
+        </div>
+      </form></app-dialog
+    >
+  }
+  @if (deleting(); as t) {
+    <app-confirm
+      title="Delete this target?"
+      message="Recorded transactions and savings history will stay intact."
+      label="Delete target"
+      (cancel)="deleting.set(null)"
+      (confirm)="deleteTarget(t)"
+    />
+  }
+}

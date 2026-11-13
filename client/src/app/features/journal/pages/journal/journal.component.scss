@@ -1,0 +1,124 @@
+.toolbar input {
+  flex: 1;
+}
+.journal-layout.with-calendar {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 30px;
+}
+.journal-calendar {
+  padding: 22px;
+  height: fit-content;
+}
+.journal-calendar h2 {
+  margin-bottom: 20px;
+}
+.journal-timeline {
+  max-width: 860px;
+  margin-inline: auto;
+  width: 100%;
+}
+.journal-entry {
+  display: flex;
+  gap: 24px;
+  padding: 28px 0;
+  border-top: 1px solid var(--line);
+}
+.journal-date {
+  width: 70px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.journal-date strong {
+  display: block;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -1px;
+}
+.journal-date span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.journal-body {
+  flex: 1;
+  min-width: 0;
+}
+.entry-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.entry-heading h2 {
+  font-size: 18px;
+  line-height: 1.5;
+}
+.journal-prose {
+  font-size: 15px;
+  line-height: 1.95;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-bottom: 20px;
+}
+.journal-prompt {
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-bottom: 12px;
+}
+.journal-prompt strong {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.quick-actions {
+  margin-top: 22px;
+}
+@media (max-width: 1050px) {
+  .journal-layout.with-calendar {
+    grid-template-columns: 1fr;
+  }
+  .journal-calendar {
+    max-width: 420px;
+    width: 100%;
+  }
+}
+@media (max-width: 600px) {
+  .journal-entry {
+    gap: 12px;
+    padding-block: 22px;
+  }
+  .journal-date {
+    width: 45px;
+  }
+  .journal-date strong {
+    font-size: 27px;
+  }
+  .journal-date span {
+    font-size: 9px;
+  }
+  .journal-prose {
+    font-size: 14px;
+  }
+  .entry-heading h2 {
+    font-size: 16px;
+  }
+  .quick-actions {
+    gap: 12px;
+  }
+  .toolbar {
+    flex-wrap: wrap;
+  }
+  .toolbar input {
+    flex-basis: 100%;
+  }
+}
+
+.journal-body .quick-actions {
+  margin-bottom: 0;
+}

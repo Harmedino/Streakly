@@ -1,0 +1,25 @@
+<section class="daily-focus" aria-label="Today's progress">
+  <div class="focus-top">
+    <span class="eyebrow">YOUR DAY, IN FOCUS</span
+    ><span class="focus-date">{{ pretty(date(), { month: 'short', day: 'numeric' }) }}</span>
+  </div>
+  <div class="focus-progress">
+    <h2>
+      {{ done() }}<span> / {{ total() }}</span>
+    </h2>
+    <div>
+      <strong>{{ done() }} of {{ total() }} completed</strong
+      ><span>{{ total() - done() }} streaks and tasks remaining</span>
+    </div>
+    <span class="focus-percent">{{ progress() }}%</span>
+  </div>
+  <app-progress [value]="progress()" />
+  <div class="focus-footer">
+    <span><i class="tiny-dot"></i>{{ active() }} active streaks</span
+    ><span
+      >Best streak <strong>{{ best() }}</strong></span
+    ><button class="text-button" (click)="mark.emit()">
+      Mark daily progress <app-icon name="arrow" [size]="15" />
+    </button>
+  </div>
+</section>

@@ -1,0 +1,8 @@
+<app-entry-form
+  [title]="title"
+  [fields]="fields"
+  [initial]="initial"
+  [error]="life.error()"
+  (save)="save($event)"
+  (close)="close.emit()"
+/>

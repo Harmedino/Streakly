@@ -1,0 +1,313 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">PLAN WITH INTENTION</span>
+    <h1>Daily planner<span class="greeting-dot">.</span></h1>
+    <p>A clear head. A considered day. One task at a time.</p>
+  </div>
+  <span class="pill">{{ remaining() }} {{ remaining() === 1 ? 'task' : 'tasks' }} to go</span>
+</div>
+<div class="planner-workspace">
+  <aside class="planner-capture">
+    <section class="panel todo-composer">
+      <div class="capture-heading">
+        <app-icon name="plus" [size]="18" />
+        <h2>Capture a task</h2>
+      </div>
+      <p class="helper">Get it out of your head and into your day.</p>
+      <form (ngSubmit)="add()" #form="ngForm">
+        <label class="task-name"
+          >What needs doing?<input
+            name="title"
+            [(ngModel)]="title"
+            required
+            maxlength="200"
+            placeholder="e.g. Book that appointment…"
+        /></label>
+        <details [open]="!!goalId">
+          <summary>More Options</summary>
+          <label class="task-date"
+            >Due date <span class="optional">optional</span
+            ><input
+              type="date"
+              name="dueDate"
+              [(ngModel)]="dueDate"
+              min="1900-01-01"
+              max="2200-12-31" /></label
+          ><label class="task-date"
+            >Scheduled day<input
+              type="date"
+              name="scheduledDate"
+              [(ngModel)]="scheduledDate" /></label
+          ><label class="task-date"
+            >Priority<select aria-label="Priority" name="priority" [(ngModel)]="priority">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select></label
+          >
+          <label
+            >Related goal<select
+              aria-label="Related goal"
+              name="goal"
+              [(ngModel)]="goalId"
+              (ngModelChange)="milestoneId = ''; syncMilestone = false"
+            >
+              <option value="">No linked goal</option>
+              @for (g of goals(); track g.id) {
+                <option [value]="g.id">{{ g.title }}</option>
+              }
+            </select></label
+          >
+          @if (goalId && milestones(goalId).length) {
+            <label
+              >Related milestone<select
+                aria-label="Related milestone"
+                name="milestone"
+                [(ngModel)]="milestoneId"
+              >
+                <option value="">No milestone</option>
+                @for (m of milestones(goalId); track m.id) {
+                  <option [value]="m.id">{{ m.title }}</option>
+                }
+              </select></label
+            >
+          }
+          @if (milestoneId) {
+            <label class="checkbox-label"
+              ><input type="checkbox" name="syncMilestone" [(ngModel)]="syncMilestone" />Complete
+              the linked milestone with this task</label
+            >
+            <p class="helper">
+              Undoing the task also removes its milestone credit. Multiple linked tasks count once.
+            </p>
+          }
+        </details>
+        <button class="btn primary" type="submit" [disabled]="form.invalid || !title.trim()">
+          <app-icon name="plus" [size]="17" />Add task
+        </button>
+      </form>
+      @if (error) {
+        <p class="error" role="alert">{{ error }}</p>
+      }
+    </section>
+  </aside>
+  <div class="planner-agenda">
+    <div class="planner-scope">
+      <label
+        >Show tasks<select
+          aria-label="Planner date filter"
+          [ngModel]="scope()"
+          (ngModelChange)="scope.set($event)"
+        >
+          <option value="all">All dates</option>
+          <option value="today">Today</option>
+          <option value="overdue">Missed / overdue</option>
+          <option value="upcoming">Upcoming</option>
+        </select></label
+      >
+      <p class="helper">
+        Today: {{ todayTasks().filter(isDoneTask).length }} of {{ todayTasks().length }} complete ·
+        {{ dailyProgress() }}%
+      </p>
+    </div>
+    <section class="panel todo-list">
+      <div class="todo-summary">
+        <div>
+          <h2>Your task list</h2>
+          <p>{{ done() }} of {{ tasks().length }} tasks completed</p>
+        </div>
+        <span>{{ progress() }}%</span>
+      </div>
+      <div class="todo-progress"><app-progress [value]="progress()" /></div>
+      <div class="todo-toolbar">
+        <div class="tabs">
+          <button [class.active]="filter() === 'pending'" (click)="filter.set('pending')">
+            To do <span>{{ remaining() }}</span></button
+          ><button [class.active]="filter() === 'all'" (click)="filter.set('all')">
+            All <span>{{ tasks().length }}</span></button
+          ><button [class.active]="filter() === 'done'" (click)="filter.set('done')">
+            Done <span>{{ done() }}</span>
+          </button>
+        </div>
+        <button class="text-button" [disabled]="!done()" (click)="clearing.set(true)">
+          Clear completed
+        </button>
+      </div>
+      @for (task of list(); track task.id) {
+        <article class="todo-row" [class.todo-done]="task.done">
+          @if (editing()?.id === task.id) {
+            <form class="todo-edit" (ngSubmit)="save()" #editForm="ngForm">
+              <label
+                >Task name<input
+                  name="editTitle"
+                  [(ngModel)]="editTitle"
+                  required
+                  maxlength="200" /></label
+              ><label
+                >Task due date<input
+                  type="date"
+                  name="editDate"
+                  [(ngModel)]="editDueDate"
+                  min="1900-01-01"
+                  max="2200-12-31"
+              /></label>
+              <label
+                >Reschedule task<input
+                  type="date"
+                  name="editSchedule"
+                  [(ngModel)]="editScheduledDate" /></label
+              ><label
+                >Task priority<select
+                  aria-label="Task priority"
+                  name="editPriority"
+                  [(ngModel)]="editPriority"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select></label
+              >
+              <label
+                >Related goal<select
+                  aria-label="Related goal"
+                  name="editGoal"
+                  [(ngModel)]="editGoalId"
+                  (ngModelChange)="editMilestoneId = ''; editSyncMilestone = false"
+                >
+                  <option value="">No linked goal</option>
+                  @for (g of goals(); track g.id) {
+                    <option [value]="g.id">{{ g.title }}</option>
+                  }
+                </select></label
+              >
+              @if (editGoalId) {
+                <label
+                  >Related milestone<select
+                    aria-label="Related milestone"
+                    name="editMilestone"
+                    [(ngModel)]="editMilestoneId"
+                  >
+                    <option value="">No milestone</option>
+                    @for (m of milestones(editGoalId); track m.id) {
+                      <option [value]="m.id">{{ m.title }}</option>
+                    }
+                  </select></label
+                >
+              }
+              @if (editMilestoneId) {
+                <label class="checkbox-label"
+                  ><input type="checkbox" name="editSync" [(ngModel)]="editSyncMilestone" />Complete
+                  the linked milestone with this task</label
+                >
+              }
+              <div class="todo-edit-actions">
+                <button class="btn" type="button" (click)="editing.set(null)">Cancel</button
+                ><button class="btn primary" [disabled]="editForm.invalid || !editTitle.trim()">
+                  Save task
+                </button>
+              </div>
+              @if (editError) {
+                <p class="error" role="alert">{{ editError }}</p>
+              }
+            </form>
+          } @else {
+            <button
+              class="completion-button"
+              [class.checked]="task.done"
+              [attr.aria-label]="(task.done ? 'Undo task: ' : 'Complete task: ') + task.title"
+              [attr.aria-pressed]="task.done"
+              (click)="tracker.toggleTodo(task.id)"
+            >
+              <app-icon name="check" [size]="18" />
+            </button>
+            <div class="todo-text">
+              <h3>{{ task.title }}</h3>
+              @if (task.goalId) {
+                <a class="text-button" [routerLink]="['/goals', task.goalId]"
+                  >{{ goalTitle(task.goalId) }} ↗</a
+                >
+              }
+              <span class="status-pill" [attr.data-priority]="task.priority || 'medium'"
+                >{{ task.priority || 'medium' }} priority</span
+              >
+              @if (task.scheduledDate) {
+                <small class="helper">Planned {{ task.scheduledDate }}</small>
+              }
+              @if (task.dueDate) {
+                <span
+                  class="todo-due"
+                  [class.overdue]="!task.done && task.dueDate < tracker.today()"
+                  ><app-icon name="calendar" [size]="13" />{{
+                    task.dueDate === tracker.today()
+                      ? 'Due today'
+                      : pretty(task.dueDate, { day: 'numeric', month: 'short', year: 'numeric' })
+                  }}
+                  @if (!task.done && task.dueDate < tracker.today()) {
+                    · Overdue
+                  }
+                </span>
+              }
+            </div>
+            <div class="todo-actions">
+              @if (!task.done) {
+                <button
+                  class="text-button"
+                  [attr.aria-label]="'Move to tomorrow: ' + task.title"
+                  (click)="tomorrow(task)"
+                >
+                  Tomorrow
+                </button>
+              }
+              <button
+                class="text-button"
+                [attr.aria-label]="'Edit task: ' + task.title"
+                (click)="edit(task)"
+              >
+                Edit</button
+              ><button
+                class="icon-button"
+                [attr.aria-label]="'Delete task: ' + task.title"
+                (click)="deleting.set(task)"
+              >
+                <app-icon name="x" [size]="17" />
+              </button>
+            </div>
+          }
+        </article>
+      } @empty {
+        <app-empty
+          [title]="tasks().length ? 'A little breathing room.' : 'Make a little mental space.'"
+          [description]="
+            tasks().length
+              ? 'No tasks in this view. Take a breath, or add your next small step.'
+              : 'Add your first task above. Your tasks stay in your private workspace.'
+          "
+        />
+      }
+    </section>
+    <p class="helper todo-footnote">
+      Tasks appear in daily reports. A linked milestone updates only when you enable its completion
+      option.
+    </p>
+  </div>
+</div>
+@if (deleting(); as task) {
+  <app-confirm
+    title="Remove this task?"
+    [message]="'Delete “' + task.title + '” from your list?'"
+    label="Delete task"
+    (cancel)="deleting.set(null)"
+    (confirm)="remove()"
+  />
+}
+@if (clearing()) {
+  <app-confirm
+    title="Clear your completed tasks?"
+    [message]="
+      'This removes ' + done() + ' completed tasks. Your unfinished tasks will stay on your list.'
+    "
+    label="Clear completed"
+    (cancel)="clearing.set(false)"
+    (confirm)="clear()"
+  />
+}

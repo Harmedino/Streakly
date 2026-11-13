@@ -1,0 +1,59 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.note-title {
+  font-size: 28px;
+  font-weight: 600;
+  border: 0;
+  background: transparent;
+  padding: 16px 0;
+  margin: 14px 0 20px;
+  letter-spacing: -0.7px;
+  border-radius: 0;
+}
+.note-title:focus-visible {
+  outline: 0;
+  box-shadow: 0 2px 0 var(--accent);
+}
+.editor-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.editor-topline .btn {
+  font-size: 12px;
+}
+.embedded-note {
+  padding: 24px;
+}
+.note-editor-form details {
+  margin-top: 22px;
+}
+summary {
+  font-size: 12px;
+}
+@media (max-width: 650px) {
+  .embedded-note {
+    padding: 16px;
+  }
+  .note-title {
+    font-size: 24px;
+  }
+  .editor-topline {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 3;
+    padding-bottom: 10px;
+  }
+  .editor-topline .eyebrow {
+    display: none;
+  }
+}
+
+.editor-topline .quick-actions {
+  margin: 0;
+}

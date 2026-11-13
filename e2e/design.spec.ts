@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { emptyData } from '../src/app/models/tracker';
-import { addDays, dateKey } from '../src/app/core/dates';
+import { emptyData } from '../client/src/app/core/models/tracker';
+import { addDays, dateKey } from '../client/src/app/core/utils/dates';
 function designData(theme: 'light' | 'dark') {
   const d = emptyData(),
     today = dateKey(),

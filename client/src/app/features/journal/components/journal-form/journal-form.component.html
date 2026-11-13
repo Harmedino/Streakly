@@ -1,0 +1,57 @@
+<app-dialog
+  [title]="entry() ? 'Edit journal entry' : 'Write in your journal'"
+  [fullScreen]="true"
+  (close)="close.emit()"
+  ><form (ngSubmit)="save()" #form="ngForm">
+    <label
+      >Date<input
+        type="date"
+        name="date"
+        [(ngModel)]="value.date"
+        [max]="tracker.today()"
+        required /></label
+    ><label class="writing-label"
+      >Journal content<textarea
+        class="journal-writing"
+        name="content"
+        [(ngModel)]="value.content"
+        maxlength="50000"
+        rows="12"
+        placeholder="What's on your mind? This space is yours."
+      ></textarea>
+    </label>
+    <details>
+      <summary>Optional prompts & mood</summary>
+      <label
+        >Mood<select aria-label="Mood" name="mood" [(ngModel)]="value.mood">
+          <option [ngValue]="null">Prefer not to rate</option>
+          <option [ngValue]="1">Very low</option>
+          <option [ngValue]="2">Low</option>
+          <option [ngValue]="3">Okay</option>
+          <option [ngValue]="4">Good</option>
+          <option [ngValue]="5">Great</option>
+        </select></label
+      >
+      @for (p of prompts; track p.key) {
+        <label
+          >{{ p.label
+          }}<textarea
+            [name]="p.key"
+            [(ngModel)]="value[p.key]"
+            rows="3"
+            maxlength="5000"
+          ></textarea>
+        </label>
+      }
+    </details>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="form-actions">
+      <button class="btn" type="button" (click)="close.emit()">Cancel</button
+      ><button class="btn primary" [disabled]="form.invalid || !hasText() || tracker.api.busy()">
+        {{ tracker.api.busy() ? 'Saving…' : 'Save entry' }}
+      </button>
+    </div>
+  </form></app-dialog
+>

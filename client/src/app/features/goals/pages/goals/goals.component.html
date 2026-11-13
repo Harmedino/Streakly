@@ -1,0 +1,266 @@
+@if (id()) {
+  <a class="text-button" routerLink="/goals">← All goals</a>
+  @if (selected(); as g) {
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">{{ g.category }} · {{ g.priority }} PRIORITY</span>
+        <h1>{{ g.title }}</h1>
+        <p>{{ g.description || 'One clear intention. Make your next step count.' }}</p>
+      </div>
+      <button class="btn" (click)="editing.set(g)">Edit goal</button>
+    </div>
+    <div class="goal-detail-layout">
+      <section class="panel detail-main">
+        <div class="section-heading">
+          <div>
+            <span class="status-pill">{{
+              g.status === 'active' && g.deadline && g.deadline < tracker.today()
+                ? 'Overdue'
+                : g.status
+            }}</span>
+            <h2>{{ percent(g) }}% complete</h2>
+            <p class="helper">
+              {{ g.deadline ? 'Target date ' + g.deadline : 'No deadline' }} · Started
+              {{ g.startDate }}
+            </p>
+          </div>
+          @if (!g.source || g.source === 'manual') {
+            <button class="btn primary" (click)="complete(g)">
+              {{ g.status === 'completed' ? 'Undo completion' : 'Mark completed' }}
+            </button>
+          }
+        </div>
+        <app-progress [value]="percent(g)" />
+        @if (tracking(g) === 'numeric') {
+          <div class="numeric-summary">
+            <strong
+              >{{ g.current ?? g.progress | number: '1.0-2' }}
+              <span>/ {{ g.target ?? 100 }} {{ g.unit || '' }}</span></strong
+            >
+            @if (g.source === 'manual' || !g.source) {
+              <button class="btn" (click)="update(g)">Update progress</button>
+            } @else {
+              <p class="helper">
+                Automatically calculated from recorded {{ g.source }}. Edit the source records to
+                correct progress.
+              </p>
+            }
+          </div>
+        }
+        @if (tracking(g) === 'milestones') {
+          <h2 class="section-title">Milestones</h2>
+          <p class="helper">Each completed step contributes equally to your progress.</p>
+          @for (m of g.milestones; track m.id; let i = $index) {
+            <div class="milestone-row">
+              @if (milestoneEdit === m.id) {
+                <form class="inline-form" (ngSubmit)="saveMilestone(g)">
+                  <label
+                    >Milestone title<input
+                      name="title"
+                      [(ngModel)]="editTitle"
+                      required
+                      maxlength="200" /></label
+                  ><label
+                    >Milestone due date<input name="date" type="date" [(ngModel)]="editDate"
+                  /></label>
+                  <div class="quick-actions">
+                    <button class="btn primary" [disabled]="!editTitle.trim()">
+                      Save milestone</button
+                    ><button type="button" class="btn" (click)="milestoneEdit = ''">Cancel</button>
+                  </div>
+                </form>
+              } @else {
+                <button
+                  class="completion-button"
+                  [class.checked]="m.done"
+                  [attr.aria-label]="
+                    (m.done ? 'Undo milestone: ' : 'Complete milestone: ') + m.title
+                  "
+                  [attr.aria-pressed]="m.done"
+                  [disabled]="!!m.taskIds?.length"
+                  (click)="action(life.toggleMilestone(g, m.id))"
+                >
+                  {{ m.done ? '✓' : '' }}
+                </button>
+                <div class="milestone-copy">
+                  <strong>{{ m.title }}</strong>
+                  @if (m.deadline) {
+                    <small>Due {{ m.deadline }}</small>
+                  }
+                  @if (m.taskIds?.length) {
+                    <small>Completed by linked planner task. Undo the task to reopen.</small>
+                  }
+                </div>
+                <div class="quick-actions">
+                  <button class="text-button" (click)="editMilestone(m)">Edit</button
+                  ><button
+                    class="icon-button"
+                    [disabled]="i === 0"
+                    [attr.aria-label]="'Move up: ' + m.title"
+                    (click)="action(service.moveMilestone(g, m.id, -1))"
+                  >
+                    ↑</button
+                  ><button
+                    class="icon-button"
+                    [disabled]="i === g.milestones.length - 1"
+                    [attr.aria-label]="'Move down: ' + m.title"
+                    (click)="action(service.moveMilestone(g, m.id, 1))"
+                  >
+                    ↓</button
+                  ><button
+                    class="icon-button"
+                    [attr.aria-label]="'Delete milestone: ' + m.title"
+                    (click)="deleting.set({ goal: g, milestone: m })"
+                  >
+                    ×
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        }
+        <form class="add-milestone" (ngSubmit)="addMilestone(g)">
+          <label
+            >New milestone<input
+              name="milestone"
+              [(ngModel)]="milestoneTitle"
+              maxlength="200"
+              placeholder="Break it into a smaller step…" /></label
+          ><label
+            >Milestone deadline <span class="optional">optional</span
+            ><input type="date" name="milestoneDeadline" [(ngModel)]="milestoneDate" /></label
+          ><button class="btn" [disabled]="!milestoneTitle.trim()">Add milestone</button>
+        </form>
+        <div class="quick-actions">
+          <a class="text-button" routerLink="/planner" [queryParams]="{ goal: g.id }"
+            >Add a related task ↗</a
+          ><a class="text-button" routerLink="/learning" [queryParams]="{ goal: g.id }"
+            >Add a related note ↗</a
+          ><button class="text-button destructive" (click)="deleting.set({ goal: g })">
+            Delete goal
+          </button>
+        </div>
+      </section>
+      <aside>
+        <section class="panel detail-side">
+          <h2>Activity history</h2>
+          @for (e of history(); track e.id) {
+            <div class="history-line">
+              <time>{{ e.date }}</time>
+              <p>
+                {{ e.label || 'Progress updated' }} <strong>{{ e.from }}% → {{ e.to }}%</strong>
+              </p>
+            </div>
+          } @empty {
+            <p class="helper">Your progress updates will appear here.</p>
+          }
+        </section>
+        <section class="panel detail-side">
+          <h2>Related work</h2>
+          @for (n of notes(); track n.id) {
+            <a class="related-link" routerLink="/learning" [queryParams]="{ note: n.id }"
+              >{{ n.topic || 'Untitled note' }} · note</a
+            >
+          }
+          @for (t of tasks(); track t.id) {
+            <a class="related-link" routerLink="/planner"
+              >{{ t.done ? '✓ ' : '' }}{{ t.title }} · task</a
+            >
+          }
+          @if (!notes().length && !tasks().length) {
+            <p class="helper">Connect a note or planner task to keep the work together.</p>
+          }
+        </section>
+      </aside>
+    </div>
+  } @else {
+    <app-empty
+      title="Goal not found"
+      description="It may have been deleted. Your other goals are still available."
+    />
+  }
+} @else {
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">INTENTION INTO ACTION</span>
+      <h1>Your goals<span class="greeting-dot">.</span></h1>
+      <p>A clear next step for every ambition.</p>
+    </div>
+    <button class="btn primary" (click)="editing.set(null)">Add goal</button>
+  </div>
+  <div class="toolbar">
+    <input
+      class="goal-search"
+      aria-label="Search goals"
+      placeholder="Find a goal…"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+    />
+    <div class="tabs">
+      @for (s of ['all', 'active', 'completed', 'overdue', 'paused']; track s) {
+        <button [class.active]="filter() === s" (click)="filter.set(s)">
+          {{ s === 'all' ? 'All goals' : s }}
+        </button>
+      }
+    </div>
+  </div>
+  <div class="goals-grid">
+    @for (g of goals(); track g.id) {
+      <app-goal-card
+        [goal]="g"
+        [today]="tracker.today()"
+        (complete)="complete($event)"
+        (update)="update($event)"
+      />
+    } @empty {
+      <section class="panel">
+        <app-empty
+          title="What would you like to finish?"
+          description="Start with a title. Complete it in one click, or add smaller milestones."
+          action="Create a goal"
+          (activate)="editing.set(null)"
+        />
+      </section>
+    }
+  </div>
+}
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+@if (editing() !== undefined) {
+  <app-goal-form [goal]="editing() ?? null" (close)="editing.set(undefined)" />
+}
+@if (numeric(); as g) {
+  <app-dialog title="Update goal progress" (close)="numeric.set(null)"
+    ><form (ngSubmit)="saveProgress()">
+      <p>{{ g.title }} · Target {{ g.target }} {{ g.unit }}</p>
+      <label
+        >Current progress<input
+          type="number"
+          name="current"
+          [(ngModel)]="current"
+          min="0"
+          step="any"
+          required
+      /></label>
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      <div class="form-actions">
+        <button class="btn" type="button" (click)="numeric.set(null)">Cancel</button
+        ><button class="btn primary" [disabled]="tracker.api.busy()">Save progress</button>
+      </div>
+    </form></app-dialog
+  >
+}
+@if (deleting(); as d) {
+  <app-confirm
+    [title]="d.milestone ? 'Delete milestone?' : 'Delete goal?'"
+    [message]="
+      'Remove ' + (d.milestone?.title || d.goal.title) + '? Related notes and tasks will be kept.'
+    "
+    label="Confirm deletion"
+    (cancel)="deleting.set(null)"
+    (confirm)="remove()"
+  />
+}

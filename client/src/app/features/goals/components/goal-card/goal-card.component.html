@@ -1,0 +1,52 @@
+<article class="goal-card" [class.completed]="goal().status === 'completed'">
+  <div class="goal-top">
+    <span class="eyebrow">{{ goal().category }}</span
+    ><span class="status-pill">{{
+      goal().status === 'completed'
+        ? 'Completed'
+        : goal().status === 'paused'
+          ? 'Paused'
+          : goal().deadline && goal().deadline < today()
+            ? 'Overdue'
+            : 'Active'
+    }}</span>
+  </div>
+  <a class="goal-title" [routerLink]="['/goals', goal().id]">{{ goal().title }}</a>
+  <div class="goal-meter">
+    <app-progress [value]="percent(goal())" /><strong>{{ percent(goal()) }}%</strong>
+  </div>
+  <div class="goal-meta">
+    <span>{{ goal().deadline ? 'Due ' + goal().deadline : 'No deadline' }}</span
+    ><span>{{
+      tracking(goal()) === 'milestones'
+        ? goal().milestones.length + ' milestones'
+        : tracking(goal()) === 'numeric'
+          ? (goal().current ?? goal().progress | number: '1.0-2') +
+            ' / ' +
+            (goal().target ?? 100) +
+            ' ' +
+            (goal().unit ?? '%')
+          : 'Simple completion'
+    }}</span>
+  </div>
+  <div class="goal-actions">
+    @if (!goal().source || goal().source === 'manual') {
+      @if (tracking(goal()) === 'simple') {
+        <button
+          class="btn"
+          [class.primary]="goal().status !== 'completed'"
+          (click)="complete.emit(goal())"
+        >
+          {{ goal().status === 'completed' ? 'Undo completion' : 'Mark completed' }}
+        </button>
+      } @else if (tracking(goal()) === 'numeric') {
+        <button class="btn" (click)="update.emit(goal())">Update progress</button>
+      } @else {
+        <a class="btn" [routerLink]="['/goals', goal().id]">Work on milestones</a>
+      }
+    } @else {
+      <span class="helper">From recorded {{ goal().source }}</span>
+    }
+    <a class="text-button" [routerLink]="['/goals', goal().id]">Details ↗</a>
+  </div>
+</article>

@@ -1,0 +1,129 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">STAY CURIOUS</span>
+    <h1>Learning journal<span class="greeting-dot">.</span></h1>
+    <p>Think on the page. Keep what you discover.</p>
+  </div>
+  <button class="btn primary" (click)="create()">New note</button>
+</div>
+<div class="notes-workspace" [class.note-open]="!!selected() || editing()">
+  <aside class="notes-sidebar">
+    <div class="note-filters">
+      <input
+        aria-label="Search notes"
+        placeholder="Search your notes…"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+      <div class="filter-pair">
+        <select
+          aria-label="Note category filter"
+          [ngModel]="category()"
+          (ngModelChange)="category.set($event)"
+        >
+          <option value="">All categories & tags</option>
+          @for (c of categories(); track c) {
+            <option>{{ c }}</option>
+          }</select
+        ><select aria-label="Note sort" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+        </select>
+      </div>
+      <label class="date-filter"
+        >Browse by date<input type="date" [ngModel]="date()" (ngModelChange)="date.set($event)"
+      /></label>
+      @if (date()) {
+        <button class="text-button" (click)="date.set('')">Clear date</button>
+      }
+    </div>
+    <div class="notes-list">
+      @for (n of list(); track n.id) {
+        <button class="note-list-item" [class.selected]="selectedId() === n.id" (click)="open(n)">
+          <strong>{{ n.pinned ? '☆ ' : '' }}{{ n.topic || 'Untitled note' }}</strong
+          ><span>{{ plain(n.description).slice(0, 110) || 'Open note' }}</span
+          ><small>{{ n.date }}{{ n.category ? ' · ' + n.category : '' }}</small>
+        </button>
+      } @empty {
+        <div class="notes-list-empty">
+          <p>No notes in this view.</p>
+          <button class="text-button" (click)="create()">Write a note</button>
+        </div>
+      }
+    </div>
+  </aside>
+  <section class="note-main">
+    <button class="text-button notes-back" (click)="selectedId.set(''); close()">
+      ← All notes
+    </button>
+    @if (editing()) {
+      <app-learning-editor
+        [embedded]="true"
+        [entry]="creating() ? null : (selected() ?? null)"
+        [initialGoal]="initialGoal"
+        (saved)="saved($event)"
+        (close)="close()"
+      />
+    } @else if (selected(); as n) {
+      <article class="note-reader">
+        <div class="reader-actions">
+          <span class="eyebrow">{{ n.date }}{{ n.minutes ? ' · ' + n.minutes + ' MIN' : '' }}</span>
+          <div class="quick-actions">
+            <button class="text-button" (click)="pin(n)">
+              {{ n.pinned ? 'Unpin' : 'Pin note' }}</button
+            ><button class="btn" (click)="editing.set(true)">Edit note</button
+            ><button class="text-button destructive" (click)="deleting.set(n)">Delete note</button>
+          </div>
+        </div>
+        <h2>{{ n.topic || 'Untitled note' }}</h2>
+        <app-markdown [content]="n.description" [format]="n.format ?? 'markdown'" />
+        @if (n.notes) {
+          <app-markdown [content]="n.notes" [format]="n.format ?? 'markdown'" />
+        }
+        @if (n.next) {
+          <p class="helper">Next: {{ n.next }}</p>
+        }
+        <div class="note-links">
+          @for (url of urls(n.resources); track url) {
+            <a [href]="url" target="_blank" rel="noopener noreferrer">Resource ↗</a>
+          }
+          @if (n.goalId) {
+            <a [routerLink]="['/goals', n.goalId]">Related goal: {{ goalTitle(n.goalId) }} ↗</a>
+          }
+          @if (n.activityId) {
+            <a [routerLink]="['/activities', n.activityId]">Related streak ↗</a>
+          }
+        </div>
+        <div class="note-tags">
+          @for (tag of n.tags ?? []; track tag) {
+            <button class="text-button" (click)="category.set(tag)">#{{ tag }}</button>
+          }
+        </div>
+        @if (n.updatedAt) {
+          <p class="helper last-edited">Last edited {{ n.updatedAt.slice(0, 10) }}</p>
+        }
+      </article>
+    } @else {
+      <app-empty
+        title="A little wiser, one note at a time."
+        description="Open a note to read, or start writing. Links, categories and study time are optional."
+        action="Write a note"
+        (activate)="create()"
+      />
+    }
+  </section>
+</div>
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+@if (deleting(); as n) {
+  <app-confirm
+    title="Delete note?"
+    [message]="
+      'Remove ' + (n.topic || 'this note') + '? Automatic learning progress will be recalculated.'
+    "
+    label="Delete note"
+    (cancel)="deleting.set(null)"
+    (confirm)="remove()"
+  />
+}

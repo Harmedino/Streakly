@@ -8,14 +8,14 @@ Requires Node.js 22.12+, npm, and MongoDB 7/8. Node 24.19 is used in development
 
 ```sh
 npm ci
-cp .env.example .env
+cp server/.env.example server/.env
 # Start MongoDB, or set MONGODB_URI to an existing development database:
 docker compose up -d mongo
 npm run server             # Terminal 1: Express on port 3000
 npm start                  # Terminal 2: Angular on http://localhost:4200, /api proxied to Express
 ```
 
-Use the exact origin in `APP_ORIGIN`. `http://localhost:4200` and `http://127.0.0.1:4200` are different origins. The default `.env.example` supports Angular development. To serve the built app directly from Express, set `APP_ORIGIN=http://localhost:3000`, run `npm run build`, then open `http://localhost:3000`.
+Use the exact origin in `APP_ORIGIN`. `http://localhost:4200` and `http://127.0.0.1:4200` are different origins. The default `server/.env.example` supports Angular development. To serve the built app directly from Express, set `APP_ORIGIN=http://localhost:3000` in `server/.env`, run `npm run build`, then open `http://localhost:3000`.
 
 Production: set `NODE_ENV=production`, an HTTPS `APP_ORIGIN`, an authenticated `MONGODB_URI`, `SMTP_URL` and `MAIL_FROM` in the deployment environment. Never put credentials in Angular or commit `.env`. Run `npm run build`, `npm run server:build`, then `npm run server:start` behind an HTTPS reverse proxy. MongoDB must not be publicly exposed. The included Compose file is a loopback-only development database, not a production database deployment.
 
@@ -25,7 +25,7 @@ Password reset links are delivered through the configured SMTP provider. Without
 
 Sign up or sign in when connected to the backend. Passwords use salted scrypt hashing. Opaque session tokens are stored hashed in MongoDB and delivered only in HttpOnly, SameSite=Strict cookies (Secure in production). Mutation requests require the session's CSRF token and JSON from the configured origin. Every data route is authorized against the session owner; resource IDs never grant access to another user's workspace. Password resets expire in 30 minutes, are single-use and revoke existing sessions.
 
-MongoDB is the source of truth for signed-in accounts. Angular only applies a successful write after server acknowledgment. Revision checks reject concurrent overwrites across tabs/devices. Failed requests leave forms open with their values and an error; session expiry prompts reauthentication without destroying an open form. Refresh reloads the latest server snapshot. Record drafts are saved in a separate field of the authenticated server workspace and never put into browser localStorage.
+MongoDB is the source of truth for signed-in accounts. Angular only applies a successful write after server acknowledgment. Revision checks reject concurrent overwrites across tabs/devices. Failed requests leave forms open with their values and an error; session expiry prompts reauthentication without destroying an open form. Refresh reloads the latest server snapshot. New-note drafts are saved in a separate field of the authenticated server workspace and never put into browser localStorage.
 
 An installation served without a backend can still open the legacy browser workspace. Once a browser signs into the server, a non-sensitive `server-required` flag prevents silently falling back to legacy data on a network failure. New account records, passwords, session tokens and server snapshots are not saved in localStorage. Browser preferences and original pre-migration records may remain there. Server account access requires connectivity; an offline PWA is not a database replica or a sync queue.
 
@@ -37,7 +37,7 @@ Signing in does not import browser data automatically. The migration panel valid
 
 Income initially asks for amount and source. Expenses ask for amount, category and an optional description. Dates default to today; payment accounts, custom dates and recurring options are under **More Options**. Accounts and savings goals also start with minimal fields. Streaks initially show a name and frequency; templates, appearance, targets and automatic rules are optional. Job applications require company and role. Goals require a title. Records remain editable through prefilled forms.
 
-Learning is a notes workspace: content is required, title is optional, and no URL, time or linked streak is required. The Markdown toolbar supports headings, emphasis, lists, checklists, code blocks and links. Raw HTML is escaped and Angular sanitizes rendered markup. Optional metadata includes tags, category, minutes, links, next steps and a related streak. Notes can be pinned, searched, filtered by category/tag, sorted oldest/newest and browsed by calendar date. The last edit date is shown. New-note drafts autosave to the server; a failed draft save is visibly reported.
+Learning is a notes workspace: content is required, title is optional, and no URL, time or linked streak is required. A Tiptap WYSIWYG editor immediately displays headings, emphasis, lists, checklists, code blocks, inline code, quotes and links. New HTML notes are allowlist-sanitized on the server and sanitized again by Angular when rendered. Existing Markdown notes retain their original text and formatting until an explicit edit is saved. Desktop uses a list/editor split; phones open a full-page reading and editing workspace. Optional metadata includes tags, category, minutes, links, next steps and a related streak. Notes can be pinned, searched, filtered by category/tag, sorted oldest/newest and browsed by calendar date. The last edit date is shown. New-note drafts autosave to the server; a failed draft save is visibly reported.
 
 ## Automatic streaks
 
@@ -63,14 +63,55 @@ Section resets explicitly name the affected section, preserve unrelated modules 
 
 Reports explain earnings, spending, net cash flow, largest categories and comparison dates in plain language. They include learning notes/topics/hours/days, active and best streaks, missed scheduled days, automatic completions, completed tasks and goals. Insufficient comparison data is stated explicitly. No forecasts or generated insights are presented as recorded facts.
 
+## Connected goals, jobs, planner and journal
+
+Goals default to a title and optional deadline. **Mark completed** immediately sets a simple goal to 100%, with undo. Milestone goals calculate equally weighted progress (two of five is 40%); each milestone can be completed, renamed, dated, deleted and reordered without changing its ID. Numeric goals use a target, current value and unit, or derive their value from saved job applications, learning hours, savings or successful streak check-ins. Automatic sources are recalculated rather than incremented, so edits and deletions do not double-count. Legacy partial percentage goals retain their progress as numeric percentage goals.
+
+Goal details include progress history, deadlines, milestones and linked notes/tasks. Planner tasks can optionally complete a linked milestone. This is an explicit checkbox, and multiple task credits count once. Undo removes only the task credit; independent manual completion is preserved. Deleting a goal detaches its notes and tasks rather than deleting them. Rescheduling keeps a dated schedule history for historical reports.
+
+Applications track Applied, Assessment, Interview, Offer, Rejected and Withdrawn. Change status directly from a row, open application details, add/edit timeline notes, and manage dated follow-ups with completion/undo. Status changes append audit events that ordinary edits cannot erase. Follow-ups appear in Overview and daily reports. Salary, location, links and interview details remain optional.
+
+Journal entries start with a date and free-writing area. Mood and reflection prompts are optional. Existing prompt-based entries remain readable and editable. Timeline/calendar views, search, editing, confirmed deletion and links to daily reports are supported.
+
+## Daily, weekly and monthly reports
+
+Reports default to **Daily report**, with selected-date navigation. Completed work, pending/missed scheduled work, overdue items, next-day priorities, daily money, budget warnings and learning summaries use real records. Weekly/monthly reports include task outcomes, follow-ups and frequently missed scheduled streaks alongside financial and learning summaries. Overview exposes tasks, follow-ups and goals requiring attention, recent notes, daily cash flow and a link to today's report.
+
+Authenticated reports are generated by Express from the complete owner-scoped MongoDB workspace. The browser does not manufacture a report from paginated lists. Failed report requests show an error/retry state. Original browser-only installations use the same pure report rules locally.
+
+A day ends in the user's configured IANA time zone. Today's unfinished work is **Pending**; past scheduled work is **Missed** or **Overdue**. No absent note or unscheduled task is treated as missed. Weekly/monthly flexible streaks are not missed before their tracking period ends. Task completion dates, goal progress events, status audits and schedule changes support historical review; old records without known timestamps are preserved without inventing completion times.
+
+## Repository and deployment
+
+```text
+client/                       Angular workspace, assets and package.json
+  src/app/core/models/        Strongly typed workspace records
+  src/app/core/services/      Signals, storage, authenticated API and reports
+  src/app/core/utils/         Shared pure validators and domain calculations
+  src/app/shared/components/  Reusable standalone components
+  src/app/features/           Dedicated goals, jobs, learning, journal, planner, etc.
+server/                       Independently runnable Express package
+  src/config/                 Environment parsing
+  src/controllers/            Request/response orchestration
+  src/routes/                 Routing and authentication middleware ordering
+  src/models/                 Mongoose models and indexes
+  src/services/               Atomic workspace, auth and migration services
+  src/validators/             Request schemas
+  src/middleware/             Authorization, CSRF and errors
+  src/utils/                  Rich-text sanitization
+scripts/                      Architecture lint and deployment preparation
+api/proxy.js                  Vercel same-origin gateway to Express
+```
+
+Every Angular component has separate `.component.ts`, `.component.html` and `.component.scss` files. The architecture lint rejects inline templates/styles and missing companion files. Root npm workspace scripts preserve the common run/build/test commands. The server compiles the shared pure domain files into its own `server/dist` artifact; the running server does not require Angular packages. Build from the checkout, then deploy `server/dist`, `server/package.json` and production server dependencies. MongoDB credentials belong only in the server deployment environment.
+
+`vercel.json` builds the Angular workspace and serves `client/dist/streakly/browser`. Deploy Express separately; set **STREAKLY_API_ORIGIN** in Vercel to its HTTPS origin, and set Express's **APP_ORIGIN** to the Vercel frontend's exact HTTPS origin. Vercel proxies `/api` to Express without exposing MongoDB or SMTP credentials. The build marks the client as server-required and updates its service-worker checksum, so a missing backend produces a connection error rather than opening legacy records. Gateway requests have an 18-second timeout and Vercel's platform payload limits; a same-origin reverse proxy to Express is preferable for larger backups. No production host or email provider is provisioned by this repository.
+
 ## Architecture and API
 
-- Angular: standalone components, Signals, Router, SCSS tokens, Lucide and reusable forms/dialogs/calendars. No UI or animation framework added.
-- `server/models`: users, expiring sessions and owner-unique workspace aggregates.
-- `server/routes`: authentication, workspace/resource endpoints and draft notes.
-- `server/services`: password/session/email functions, record defaults, migration, backups and atomic workspace writes.
-- `server/middleware`: authorization, CSRF and consistent errors.
-- `src/app/core/data-validation.ts`, `life-validation.ts`, `automation.ts`, `finance.ts`: shared pure domain logic, used by browser and server.
+- Angular: standalone components, Signals, Router, SCSS tokens, Lucide and reusable forms/dialogs/calendars.
+- Server: Express/Mongoose, request validation, owner authorization, CSRF, bounded workspace writes, revision conflicts, backups and sanitized rich text.
+- Shared pure functions: `client/src/app/core/utils/` and `core/models/`; automatic streaks, linked milestone credits and goal sources reconcile in the same atomic server save.
 
 An owner has one MongoDB workspace aggregate. This makes compound ledger, credit and automatic-streak changes atomic in a single compare-and-swap write without requiring MongoDB replica-set transactions. Workspace requests are limited to 8 MB, below MongoDB's document limit. This is a bounded personal workspace, not unlimited document storage. Backups are separate owner-scoped documents. Drafts live in their owner’s workspace with a reset epoch, so a stale autosave cannot resurrect a draft after Reset All. Unique owner/email/token indexes and session TTL indexes are created at startup.
 
@@ -82,16 +123,18 @@ Responses use `{ok:true,data,meta?}` or `{ok:false,error:{code,message}}`. Core 
 - `GET /api/:section?page=1&limit=50` (maximum page size 200)
 - `POST /api/:section[/:id]`, `PUT/DELETE /api/:section/:id` (revision required; deletion also requires `confirm:true`)
 - `/api/migration/preview`, `/api/migration`, `/api/reset`
-- `/api/backup`, `/api/backup/previous`, `/api/reports?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `/api/backup`, `/api/backup/previous`
+- `GET /api/reports?period=day|week|month&date=YYYY-MM-DD` (legacy `from`/`to` reports remain supported)
 - `GET/PUT/DELETE /api/drafts/learning`
 
-Sections cover activities, tasks, learning, jobs, income/expenses/transactions, accounts, recurring rules, budgets, savings goals/contributions, targets, goals and journal. The aggregate API handles compound completion/history mutations. Cross-record constraints reject orphaned references rather than deleting dependencies silently.
+Sections cover activities, tasks, learning, jobs, income/expenses/transactions, accounts, recurring rules, budgets, savings goals/contributions, targets, goals and journal. The aggregate API handles compound completion/history mutations. Cross-record constraints reject orphaned references; deleting goals/milestones safely detaches their links.
 
 ## Verify
 
 ```sh
+npm run lint                 # component structure and strict server type checking
 npm run build
-npm run server:check
+npm run server:build
 npm test -- --watch=false
 npm run test:api             # real localhost MongoDB; ONLY drops streakly_api_test
 npm run test:backend:e2e     # running Express + MongoDB; APP_ORIGIN must match base URL
@@ -100,4 +143,4 @@ STREAKLY_TEST_URL=http://127.0.0.1:4201 npm run test:e2e
 npm run test:pwa
 ```
 
-Backend browser tests default to `http://127.0.0.1:3000`; set `STREAKLY_BACKEND_URL` for a different test origin. Tests use isolated accounts/contexts and no production user records. Responsive checks include 320, 375, 430, 768, 1024 and 1440px. Screenshots are written under `/tmp/streakly-backend`. Animation respects reduced-motion preferences, never transforms fixed-dialog ancestors and does not block interaction.
+Backend browser tests default to `http://127.0.0.1:3000`; set `STREAKLY_BACKEND_URL` for a different test origin. Tests use isolated accounts/contexts and no production user records. Responsive checks include 320, 375, 430, 768, 1024 and 1440px. Screenshots are written under `/tmp/streakly-connected` and `/tmp/streakly-backend`. Animation respects reduced motion and does not block interaction.

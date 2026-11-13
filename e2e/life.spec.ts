@@ -156,31 +156,35 @@ test('learning, applications, goals, reflection, planner and combined reports pe
   await expect(d).not.toBeVisible();
   await page.goto('/learning');
   await page.getByRole('button', { name: 'New note', exact: true }).click();
-  d = page.getByRole('dialog');
-  await d.getByLabel('Note title', { exact: true }).fill('Angular signals');
-  await d.getByLabel('Note content', { exact: true }).fill('Derived state with computed signals.');
-  await d.getByText('More Options', { exact: true }).click();
-  await d.getByLabel('Time spent (minutes)', { exact: true }).fill('60');
-  await d
-    .getByRole('combobox', { name: 'Related streak', exact: false })
+  const note = page.locator('app-learning-editor');
+  await note.getByLabel('Note title', { exact: true }).fill('Angular signals');
+  await note
+    .getByRole('textbox', { name: 'Note content', exact: true })
+    .fill('Derived state with computed signals.');
+  await note.getByText('More Options', { exact: true }).click();
+  await note.getByLabel('Time spent (minutes)', { exact: true }).fill('60');
+  await note
+    .getByRole('combobox', { name: 'Related streak', exact: true })
     .selectOption({ label: 'Study for one hour' });
-  await d.getByRole('button', { name: 'Save note', exact: true }).click();
-  await expect(d).not.toBeVisible();
+  await note.getByRole('button', { name: 'Save note', exact: true }).click();
+  await expect(page.locator('app-rich-editor')).not.toBeVisible();
   expect(
     await page.evaluate(
       () => JSON.parse(localStorage.getItem('streakly.data.v1')!).completions.length,
     ),
   ).toBe(1);
   await page.goto('/jobs');
-  await page.getByRole('button', { name: 'Add application', exact: true }).click();
+  await page
+    .locator('.page-heading')
+    .getByRole('button', { name: 'Add application', exact: true })
+    .click();
   d = page.getByRole('dialog');
   await d.getByLabel('Company name', { exact: true }).fill('Acme');
-  await d.getByLabel('Job position', { exact: true }).fill('Frontend developer');
-  await d.getByRole('button', { name: 'More Options', exact: true }).click();
-  await d
-    .getByRole('combobox', { name: 'Application status', exact: true })
-    .selectOption('Interview');
-  await save(page);
+  await d.getByLabel('Job role', { exact: true }).fill('Frontend developer');
+  await d.getByText('More Options', { exact: true }).click();
+  await d.getByLabel('Application status', { exact: true }).selectOption('Interview');
+  await d.getByRole('button', { name: 'Save application', exact: true }).click();
+  await expect(d).not.toBeVisible();
   await page.getByLabel('Application status filter', { exact: true }).selectOption('Rejected');
   await expect(
     page.locator('.application-row').filter({ hasText: 'Frontend developer' }),
@@ -193,39 +197,47 @@ test('learning, applications, goals, reflection, planner and combined reports pe
   await page.getByRole('button', { name: 'Add goal', exact: true }).click();
   d = page.getByRole('dialog');
   await d.getByLabel('Goal title', { exact: true }).fill('Build my skills');
-  await d.getByRole('button', { name: 'More Options', exact: true }).click();
-  await d.getByLabel('Deadline', { exact: true }).fill('2027-01-01');
-  await d
-    .getByLabel('Milestones · one per line', { exact: false })
-    .fill('Read the guide\nBuild a project');
-  await save(page);
-  await page.getByRole('button', { name: 'Read the guide', exact: true }).click();
-  await expect(page.getByText(/50% complete/)).toBeVisible();
+  await d.getByText('More Options', { exact: true }).click();
+  await d.getByLabel('Progress tracking method', { exact: true }).selectOption('milestones');
+  for (const title of ['Read the guide', 'Build a project']) {
+    await d.getByLabel('New milestone', { exact: true }).fill(title);
+    await d.getByRole('button', { name: 'Add milestone', exact: true }).click();
+  }
+  await d.getByRole('button', { name: 'Save goal', exact: true }).click();
+  await expect(d).not.toBeVisible();
+  await page.getByRole('link', { name: 'Build my skills', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Complete milestone: Read the guide', exact: true })
+    .click();
+  await expect(page.getByRole('heading', { name: '50% complete', exact: true })).toBeVisible();
   await page.goto('/journal');
-  await page.getByRole('button', { name: 'Add entry', exact: true }).click();
+  await page
+    .locator('.page-heading')
+    .getByRole('button', { name: 'Write an entry', exact: true })
+    .click();
   d = page.getByRole('dialog');
-  await d.getByLabel('What I accomplished today', { exact: true }).fill('Built something useful.');
-  await d.getByLabel('Tomorrow’s priorities', { exact: true }).fill('Keep learning.');
-  await d.getByRole('combobox', { name: 'Mood · optional', exact: true }).selectOption('4');
-  await save(page);
+  await d.getByLabel('Journal content', { exact: true }).fill('Built something useful.');
+  await d.getByText('Optional prompts & mood', { exact: true }).click();
+  await d.getByLabel('Mood', { exact: true }).selectOption({ label: 'Good' });
+  await d.getByRole('button', { name: 'Save entry', exact: true }).click();
+  await expect(d).not.toBeVisible();
   await page.goto('/planner');
   await page.getByLabel('What needs doing?', { exact: true }).fill('Practice TypeScript');
+  await page.getByText('More Options', { exact: true }).click();
   await page.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('high');
   await page.getByRole('button', { name: 'Add task', exact: true }).click();
   await page
     .getByRole('button', { name: 'Complete task: Practice TypeScript', exact: true })
     .click();
   await page.goto('/reports');
+  await page.getByRole('button', { name: 'Weekly report', exact: true }).click();
   await expect(
-    page.getByText('60 minutes of learning, 1 application, and 1 completed task.', {
-      exact: true,
-    }),
+    page.getByText('60 minutes of learning, 1 application, and 1 completed task.', { exact: true }),
   ).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: 'Weekly report', exact: true }).click();
   await expect(
-    page.getByText('60 minutes of learning, 1 application, and 1 completed task.', {
-      exact: true,
-    }),
+    page.getByText('60 minutes of learning, 1 application, and 1 completed task.', { exact: true }),
   ).toBeVisible();
   await page.goto('/');
   await expect(page.locator('.growth-preview')).toContainText('1 hour');

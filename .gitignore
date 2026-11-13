@@ -52,3 +52,11 @@ Thumbs.db
 .env.*
 !.env.example
 /dist-server/
+
+# Workspace build and cache output
+/client/dist/
+/client/.angular/
+/client/out-tsc/
+/server/dist/
+/client/node_modules/
+/server/node_modules/

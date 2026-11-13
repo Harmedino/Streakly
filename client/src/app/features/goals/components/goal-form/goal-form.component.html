@@ -1,0 +1,195 @@
+<app-dialog [title]="goal() ? 'Edit goal' : 'Create a goal'" (close)="close.emit()"
+  ><form (ngSubmit)="save()" #form="ngForm">
+    <label
+      >Goal title<input
+        name="title"
+        [(ngModel)]="value.title"
+        placeholder="Finish Module 1"
+        required
+        maxlength="200"
+    /></label>
+    <label
+      >Target date <span class="optional">optional</span
+      ><input type="date" name="deadline" [(ngModel)]="value.deadline" [min]="value.startDate"
+    /></label>
+    <details [open]="!!goal()">
+      <summary>More Options</summary>
+      <label
+        >Progress tracking method<select
+          aria-label="Progress tracking method"
+          name="tracking"
+          [(ngModel)]="value.tracking"
+        >
+          <option value="simple">Simple completion</option>
+          <option value="milestones">Milestones</option>
+          <option value="numeric">Numeric target</option>
+        </select></label
+      >
+      @if (value.tracking === 'numeric') {
+        <label
+          >Progress source<select
+            aria-label="Progress source"
+            name="source"
+            [(ngModel)]="value.source"
+            (ngModelChange)="sourceChanged()"
+          >
+            <option value="manual">Update it myself</option>
+            <option value="applications">Recorded job applications</option>
+            <option value="learning">Recorded learning hours</option>
+            <option value="savings">Recorded savings</option>
+            <option value="streak">Successful streak check-ins</option>
+          </select></label
+        >
+        <div class="form-grid">
+          <label
+            >Target amount<input
+              type="number"
+              name="target"
+              [(ngModel)]="value.target"
+              min="0.01"
+              max="1000000000000"
+              step="any"
+              required /></label
+          ><label
+            >Unit<input
+              name="unit"
+              [(ngModel)]="value.unit"
+              [readOnly]="value.source !== 'manual'"
+              maxlength="40"
+              placeholder="books, hours, applications…"
+          /></label>
+          @if (value.source === 'manual') {
+            <label
+              >Current progress<input
+                type="number"
+                name="current"
+                [(ngModel)]="value.current"
+                min="0"
+                step="any"
+                required
+            /></label>
+          }
+        </div>
+        @if (value.source === 'savings') {
+          <label
+            >Savings goal<select
+              aria-label="Savings goal"
+              name="savings"
+              [(ngModel)]="value.savingsId"
+            >
+              <option value="">All recorded savings</option>
+              @for (s of life.data().savingsGoals; track s.id) {
+                <option [value]="s.id">{{ s.name }}</option>
+              }
+            </select></label
+          >
+          <p class="helper">
+            Enter your target in {{ tracker.data().preferences.currency || 'NGN' }}, not minor
+            units. Contributions minus withdrawals count once.
+          </p>
+        }
+        @if (value.source === 'learning') {
+          <label
+            >Learning category <span class="optional">optional</span
+            ><input name="learningCategory" [(ngModel)]="value.learningCategory" maxlength="60"
+          /></label>
+          <p class="helper">Recorded minutes are converted to hours from the goal start date.</p>
+        }
+        @if (value.source === 'streak') {
+          <label
+            >Related streak<select
+              aria-label="Related streak"
+              name="streak"
+              [(ngModel)]="value.activityId"
+            >
+              <option value="">All streaks</option>
+              @for (a of tracker.data().activities; track a.id) {
+                <option [value]="a.id">{{ a.name }}</option>
+              }
+            </select></label
+          >
+        }
+      }
+      @if (value.tracking === 'milestones') {
+        <div class="milestone-fields">
+          @for (m of value.milestones; track m.id) {
+            <div class="milestone-field">
+              <label
+                >Milestone title<input
+                  [name]="'milestone-' + m.id"
+                  [(ngModel)]="m.title"
+                  required
+                  maxlength="200" /></label
+              ><button
+                class="icon-button"
+                type="button"
+                [attr.aria-label]="'Remove milestone: ' + m.title"
+                (click)="removeMilestone(m.id)"
+              >
+                ×
+              </button>
+            </div>
+          }
+        </div>
+        <label
+          >New milestone<input
+            name="newMilestone"
+            [(ngModel)]="milestoneTitle"
+            maxlength="200"
+            (keydown.enter)="$event.preventDefault(); addMilestone()" /></label
+        ><button
+          type="button"
+          class="btn"
+          (click)="addMilestone()"
+          [disabled]="!milestoneTitle.trim()"
+        >
+          Add milestone
+        </button>
+      }
+      <label
+        >Description<textarea
+          name="description"
+          [(ngModel)]="value.description"
+          maxlength="5000"
+          rows="3"
+        ></textarea>
+      </label>
+      <div class="form-grid">
+        <label
+          >Category<input
+            name="category"
+            [(ngModel)]="value.category"
+            maxlength="60"
+            required /></label
+        ><label
+          >Priority<select aria-label="Priority" name="priority" [(ngModel)]="value.priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select></label
+        ><label
+          >Start date<input
+            type="date"
+            name="start"
+            [(ngModel)]="value.startDate"
+            required /></label
+        ><label
+          >Status<select aria-label="Status" name="status" [(ngModel)]="value.status">
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option [disabled]="value.progress !== 100" value="completed">Completed</option>
+          </select></label
+        >
+      </div>
+    </details>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="form-actions">
+      <button class="btn" type="button" (click)="close.emit()">Cancel</button
+      ><button class="btn primary" [disabled]="form.invalid || tracker.api.busy()">
+        {{ tracker.api.busy() ? 'Saving…' : 'Save goal' }}
+      </button>
+    </div>
+  </form></app-dialog
+>

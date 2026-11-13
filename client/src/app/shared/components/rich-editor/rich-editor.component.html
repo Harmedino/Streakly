@@ -1,0 +1,48 @@
+<div class="rich-editor">
+  <div class="rich-tools" role="toolbar" aria-label="Text formatting">
+    @for (tool of tools; track tool.command) {
+      <button
+        type="button"
+        [attr.aria-label]="tool.label"
+        [attr.aria-pressed]="active(tool.command)"
+        [class.active]="active(tool.command)"
+        (mousedown)="$event.preventDefault()"
+        (click)="format(tool.command)"
+      >
+        {{ tool.text }}
+      </button>
+    }
+    <button
+      type="button"
+      aria-label="Link"
+      [class.active]="active('link')"
+      (mousedown)="$event.preventDefault()"
+      (click)="showLink.set(!showLink())"
+    >
+      Link
+    </button>
+  </div>
+  @if (showLink()) {
+    <div class="rich-link">
+      <label
+        >Link URL<input
+          type="url"
+          [ngModel]="link"
+          (ngModelChange)="link = $event"
+          [ngModelOptions]="{ standalone: true }"
+          placeholder="https://…"
+          (keydown.enter)="$event.preventDefault(); addLink()" /></label
+      ><button type="button" class="btn" (click)="addLink()">Apply link</button
+      ><button type="button" class="text-button" (click)="removeLink()">Remove link</button>
+      @if (linkError()) {
+        <p role="alert" class="error">{{ linkError() }}</p>
+      }
+    </div>
+  }
+  <div
+    #mount
+    class="rich-mount"
+    [class.is-empty]="empty()"
+    [attr.data-placeholder]="placeholder()"
+  ></div>
+</div>

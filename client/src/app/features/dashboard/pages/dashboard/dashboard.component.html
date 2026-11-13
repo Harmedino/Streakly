@@ -1,0 +1,326 @@
+<div class="page-heading overview-heading">
+  <div>
+    <span class="eyebrow">{{
+      pretty(tracker.today(), { weekday: 'long', day: 'numeric', month: 'long' })
+    }}</span>
+    <h1>
+      {{ greeting() }}, {{ tracker.data().preferences.name || 'friend'
+      }}<span class="greeting-dot">.</span>
+    </h1>
+    <p>Make space for what matters today.</p>
+  </div>
+  <div class="quick-actions">
+    <a class="btn" routerLink="/reports">Today’s report</a
+    ><button class="btn primary" (click)="create.set(true)">
+      <app-icon name="plus" [size]="16" />New activity
+    </button>
+  </div>
+</div>
+<div class="overview-top">
+  <app-daily-focus
+    [date]="tracker.today()"
+    [done]="focusDone()"
+    [total]="focusTotal()"
+    [progress]="progress()"
+    [active]="activeStreaks()"
+    [best]="best()"
+    (mark)="quick.set('progress')"
+  />
+  <section class="week-pulse">
+    <div class="section-heading">
+      <h2>This week's rhythm</h2>
+      <a routerLink="/statistics" aria-label="View habit insights"
+        ><app-icon name="up" [size]="18"
+      /></a>
+    </div>
+    <div class="weekly-chart">
+      @for (day of days(); track day.date) {
+        <div class="chart-column" [class.current]="day.today" [class.future]="day.future">
+          <span class="chart-count">{{ day.future ? '—' : day.count }}</span>
+          <div class="bar-space">
+            <div
+              class="week-bar"
+              [style.height.%]="(day.count / max()) * 100"
+              [style.min-height.px]="day.count ? 8 : 3"
+            ></div>
+          </div>
+          <span>{{ day.label }}</span
+          ><i></i>
+        </div>
+      }
+    </div>
+    <p class="pulse-caption">
+      <strong>{{ weekly() }}%</strong> of this week's targets reached
+    </p>
+  </section>
+</div>
+<div class="capture-bar">
+  <span>Quick capture</span
+  ><button (click)="quick.set('income')"><app-icon name="plus" [size]="15" />Income</button
+  ><button (click)="quick.set('expense')"><app-icon name="plus" [size]="15" />Expense</button
+  ><button (click)="quick.set('learning')"><app-icon name="plus" [size]="15" />Learning</button
+  ><a routerLink="/planner"><app-icon name="check" [size]="15" />Task</a>
+</div>
+<div class="overview-body">
+  <div class="overview-primary">
+    <section class="panel activities-panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">BUILD YOUR MOMENTUM</span>
+          <h2>
+            Today's intentions <span class="count-badge">{{ tracker.scheduled().length }}</span>
+          </h2>
+        </div>
+        <button class="text-button" (click)="create.set(true)">
+          <app-icon name="plus" [size]="16" />Add new
+        </button>
+      </div>
+      <div class="tabs">
+        <button [class.active]="filter() === 'all'" (click)="filter.set('all')">
+          All activities <span>{{ tracker.active().length }}</span></button
+        ><button [class.active]="filter() === 'pending'" (click)="filter.set('pending')">
+          To do <span>{{ tracker.scheduled().length - tracker.done() }}</span></button
+        ><button [class.active]="filter() === 'done'" (click)="filter.set('done')">
+          Completed <span>{{ tracker.done() }}</span>
+        </button>
+      </div>
+      @for (a of list(); track a.id) {
+        <app-activity-card [activity]="a" />
+      } @empty {
+        <app-empty
+          [title]="tracker.active().length ? 'You’re all caught up.' : 'Build a little momentum.'"
+          [description]="
+            tracker.active().length
+              ? 'There are no activities in this view. Take a moment to enjoy your progress.'
+              : 'Start with one small habit. A chapter, a walk, a few minutes of focus.'
+          "
+          action="Create an activity"
+          (activate)="create.set(true)"
+        />
+      }
+      <a routerLink="/activities" class="panel-footer"
+        >All streaks & history <app-icon name="arrow" [size]="16"
+      /></a>
+    </section>
+    <section class="panel attention-panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">YOUR NEXT SMALL STEPS</span>
+          <h2>
+            Needs attention <span class="count-badge">{{ attention().length }}</span>
+          </h2>
+        </div>
+        <a class="text-button" routerLink="/reports">Today’s report ↗</a>
+      </div>
+      @for (item of attention().slice(0, 8); track item.id) {
+        <div class="attention-row">
+          <div>
+            <a [routerLink]="item.path">{{ item.title }}</a
+            ><small
+              >{{ item.kind }} · {{ item.status
+              }}{{ item.detail ? ' · ' + item.detail : '' }}</small
+            >
+          </div>
+          @if (item.taskId || item.followUpId) {
+            <button
+              class="btn"
+              [attr.aria-label]="'Complete: ' + item.title"
+              (click)="completeItem(item)"
+              [disabled]="tracker.api.busy()"
+            >
+              Complete
+            </button>
+          } @else {
+            <a class="text-button" [routerLink]="item.path">Open ↗</a>
+          }
+        </div>
+      } @empty {
+        <p class="helper">Your scheduled work is clear. Make room for a thoughtful next step.</p>
+      }
+      <form class="dashboard-task" (ngSubmit)="addTask()">
+        <input
+          aria-label="Quick task"
+          name="quickTask"
+          [(ngModel)]="newTask"
+          maxlength="200"
+          placeholder="Add one task for today…"
+        /><button class="btn" [disabled]="!newTask.trim() || tracker.api.busy()">Add task</button>
+      </form>
+    </section>
+    @if (upcomingFollowUps().length) {
+      <section class="panel attention-panel">
+        <div class="section-heading">
+          <h2>Upcoming follow-ups</h2>
+          <a class="text-button" routerLink="/jobs">Applications ↗</a>
+        </div>
+        @for (f of upcomingFollowUps(); track f.id) {
+          <a class="upcoming-follow" [routerLink]="['/jobs', f.jobId]"
+            ><strong>{{ f.title }}</strong
+            ><small>{{ f.company }} · {{ f.date }}</small></a
+          >
+        }
+      </section>
+    }
+    <app-record-feed
+      title="Recent activity"
+      [items]="recentActivity()"
+      actionPath="/reports"
+      actionLabel="Life reports"
+      emptyTitle="Your story starts here."
+      emptyDescription="Check-ins, learning and transactions will appear as you record them."
+    />
+    <app-daily-note [date]="tracker.today()" />
+  </div>
+  <aside class="overview-secondary">
+    <section class="money-preview">
+      <div class="section-heading">
+        <span class="eyebrow">YOUR MONEY · {{ pretty(tracker.today(), { month: 'short' }) }}</span
+        ><a routerLink="/finance" aria-label="Open finance"><app-icon name="up" [size]="18" /></a>
+      </div>
+      <span class="money-label">Available balance</span
+      ><strong class="money-balance">{{ cash(finance().available) }}</strong>
+      <p>From your tracked accounts, after savings reserves.</p>
+      <p class="today-money">
+        Today: {{ cash(day().finance.income) }} in · {{ cash(day().finance.expenses) }} out
+      </p>
+      <div class="money-preview-flows">
+        <div>
+          <span>Income</span><strong>{{ cash(finance().income) }}</strong>
+        </div>
+        <div>
+          <span>Expenses</span><strong>{{ cash(finance().expenses) }}</strong>
+        </div>
+      </div>
+      <a routerLink="/finance" [queryParams]="{ tab: 'Savings' }" class="savings-preview"
+        ><span>Total savings</span
+        ><strong>{{ cash(finance().savings) }} <app-icon name="right" [size]="14" /></strong
+      ></a>
+    </section>
+    <section class="growth-preview">
+      <div class="section-heading">
+        <h2>Keep growing</h2>
+        <app-icon name="sprout" [size]="18" />
+      </div>
+      <a routerLink="/learning" class="growth-line"
+        ><span class="growth-icon"><app-icon name="sprout" [size]="18" /></span>
+        <div>
+          <strong
+            >{{ learningHours() }}
+            <small>{{ learningHours() === 1 ? 'hour' : 'hours' }}</small></strong
+          ><span>Learning this week</span>
+        </div>
+        <app-icon name="right" [size]="15" /></a
+      ><a routerLink="/jobs" class="growth-line"
+        ><span class="growth-icon"><app-icon name="target" [size]="18" /></span>
+        <div>
+          <strong>{{ monthlyJobs() }} <small>applications</small></strong
+          ><span>This month's opportunities</span>
+        </div>
+        <app-icon name="right" [size]="15"
+      /></a>
+    </section>
+    <section class="goals-preview">
+      <div class="section-heading">
+        <h2>
+          Goals in motion <span class="count-badge">{{ activeGoals() }}</span>
+        </h2>
+        <a routerLink="/goals" aria-label="Open goals"><app-icon name="up" [size]="17" /></a>
+      </div>
+      @for (g of previewGoals(); track g.id) {
+        <div class="goal-preview">
+          <a class="goal-preview-link" [routerLink]="['/goals', g.id]"
+            ><strong>{{ g.title }}</strong
+            ><span>{{ goalProgress(g) }}%</span></a
+          ><app-progress [value]="goalProgress(g)" />
+          <div class="goal-preview-actions">
+            @if (!g.source || g.source === 'manual') {
+              @if (tracking(g) === 'simple') {
+                <button class="text-button" (click)="action(goalsService.complete(g))">
+                  Mark completed
+                </button>
+              } @else if (tracking(g) === 'numeric') {
+                <button class="text-button" (click)="openProgress(g)">Update progress</button>
+              } @else {
+                @for (m of g.milestones.slice(0, 2); track m.id) {
+                  @if (!m.done) {
+                    <button class="text-button" (click)="action(life.toggleMilestone(g, m.id))">
+                      ○ {{ m.title }}
+                    </button>
+                  }
+                }
+              }
+            }
+            <a class="text-button" [routerLink]="['/goals', g.id]">Details ↗</a>
+          </div>
+        </div>
+      } @empty {
+        <p class="helper">
+          One intention is enough to start. <a routerLink="/goals">Create a goal ↗</a>
+        </p>
+      }
+    </section>
+    <section class="panel attention-panel">
+      <h2>Latest learning notes</h2>
+      @for (n of latestNotes(); track n.id) {
+        <a class="upcoming-follow" routerLink="/learning" [queryParams]="{ note: n.id }"
+          ><strong>{{ n.topic || 'Untitled note' }}</strong
+          ><small>{{ n.date }}{{ n.minutes ? ' · ' + n.minutes + ' min' : '' }}</small></a
+        >
+      } @empty {
+        <p class="helper">
+          Keep a little of what you learn.
+          <button class="text-button" (click)="quick.set('learning')">Write a note</button>
+        </p>
+      }
+    </section>
+    <section class="panel calendar-panel">
+      <div class="section-heading">
+        <h2>Your consistency</h2>
+        <a routerLink="/calendar" aria-label="Open calendar history"
+          ><app-icon name="up" [size]="17"
+        /></a>
+      </div>
+      <app-calendar (select)="router.navigate(['/calendar'], { queryParams: { date: $event } })" />
+      <div class="calendar-legend">
+        <span><i class="complete-dot"></i>Completed</span
+        ><span><i class="today-dot"></i>Today</span>
+      </div>
+    </section>
+  </aside>
+</div>
+@if (create()) {
+  <app-activity-form (close)="create.set(false)" />
+}
+@if (quick(); as mode) {
+  @if (mode === 'learning') {
+    <app-learning-editor (close)="quick.set(null)" />
+  } @else {
+    <app-quick-entry [mode]="mode" (close)="quick.set(null)" />
+  }
+}
+
+@if (actionError()) {
+  <p class="error" role="alert">{{ actionError() }}</p>
+}
+@if (numericGoal(); as g) {
+  <app-dialog title="Update goal progress" (close)="numericGoal.set(null)"
+    ><form (ngSubmit)="saveGoalProgress()">
+      <p>{{ g.title }} · Target {{ g.target }} {{ g.unit }}</p>
+      <label
+        >Current progress<input
+          type="number"
+          name="current"
+          [(ngModel)]="numericValue"
+          min="0"
+          step="any"
+      /></label>
+      @if (actionError()) {
+        <p class="error" role="alert">{{ actionError() }}</p>
+      }
+      <div class="form-actions">
+        <button class="btn" type="button" (click)="numericGoal.set(null)">Cancel</button
+        ><button class="btn primary" [disabled]="tracker.api.busy()">Save progress</button>
+      </div>
+    </form></app-dialog
+  >
+}

@@ -1,0 +1,80 @@
+<div class="account-access">
+  <section class="panel spaced-panel">
+    <span class="eyebrow">YOUR PRIVATE WORKSPACE</span>
+    <h1>
+      {{
+        resetToken
+          ? 'Choose a new password'
+          : mode() === 'signup'
+            ? 'Create your account'
+            : mode() === 'forgot-password'
+              ? 'Reset your password'
+              : 'Welcome back'
+      }}
+    </h1>
+    <p class="muted">
+      @if (api.expired()) {
+        Your session expired. Sign in again to recover your open form.
+      }
+      Sign in to securely save your workspace on your Streakly server. Existing browser records stay
+      untouched.
+    </p>
+    <form (ngSubmit)="submit()" #form="ngForm">
+      @if (!resetToken) {
+        <label
+          >Email<input
+            type="email"
+            name="email"
+            [(ngModel)]="email"
+            [readOnly]="api.expired()"
+            required
+            maxlength="254"
+            autocomplete="email"
+        /></label>
+      }
+      @if (mode() !== 'forgot-password' || resetToken) {
+        <label
+          >Password<input
+            type="password"
+            name="password"
+            [(ngModel)]="password"
+            required
+            minlength="12"
+            maxlength="128"
+            [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+        /></label>
+        <p class="helper">Use at least 12 characters.</p>
+      }
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      @if (message()) {
+        <p class="notice" role="status">{{ message() }}</p>
+      }
+      <button class="btn primary full-width" [disabled]="form.invalid || busy()">
+        {{
+          busy()
+            ? 'Please wait…'
+            : resetToken
+              ? 'Save new password'
+              : mode() === 'signup'
+                ? 'Create account'
+                : mode() === 'forgot-password'
+                  ? 'Send reset email'
+                  : 'Sign in'
+        }}
+      </button>
+    </form>
+    @if (!resetToken && !api.expired()) {
+      <div class="quick-actions">
+        <button class="text-button" (click)="mode.set(mode() === 'signup' ? 'login' : 'signup')">
+          {{ mode() === 'signup' ? 'Already registered? Sign in' : 'Create an account' }}</button
+        ><button class="text-button" (click)="mode.set('forgot-password')">Forgot password?</button>
+      </div>
+    }
+    @if (api.error()) {
+      <p class="error">{{ api.error() }}</p>
+      <button class="btn" (click)="api.boot()">Retry connection</button>
+    }
+  </section>
+</div>

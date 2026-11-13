@@ -1,0 +1,430 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">YOUR LIFE, IN PERSPECTIVE</span>
+    <h1>
+      {{ period() === 'day' ? 'Your daily report' : 'Your life reports'
+      }}<span class="greeting-dot">.</span>
+    </h1>
+    <p>What happened. What needs attention. Your next small step.</p>
+  </div>
+  <label class="month-picker"
+    >Selected date<input
+      type="date"
+      aria-label="Report date"
+      [ngModel]="date()"
+      (ngModelChange)="setDate($event)"
+  /></label>
+</div>
+<div class="report-navigation">
+  <div class="module-tabs">
+    <button [class.active]="period() === 'day'" (click)="period.set('day')">Daily report</button
+    ><button [class.active]="period() === 'week'" (click)="period.set('week')">Weekly report</button
+    ><button [class.active]="period() === 'month'" (click)="period.set('month')">
+      Monthly report
+    </button>
+  </div>
+  <div class="quick-actions">
+    <button class="icon-button" aria-label="Previous report period" (click)="navigate(-1)">←</button
+    ><button class="text-button" (click)="date.set(tracker.today())">Today</button
+    ><button class="icon-button" aria-label="Next report period" (click)="navigate(1)">→</button>
+  </div>
+</div>
+@if (loading()) {
+  <p class="notice" role="status">Loading your saved report…</p>
+}
+@if (error()) {
+  <div class="notice">
+    <p class="error" role="alert">{{ error() }}</p>
+    <button class="btn" (click)="load()">Retry report</button>
+  </div>
+}
+@if (bundle(); as r) {
+  @if (period() === 'day') {
+    <header class="daily-date">
+      <span class="eyebrow">{{
+        r.daily.dayEnded
+          ? 'A DAY IN REVIEW'
+          : date() === tracker.today()
+            ? 'YOUR DAY SO FAR'
+            : 'UPCOMING DAY'
+      }}</span>
+      <h2>
+        {{ pretty(date(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
+      </h2>
+      <p class="helper">
+        {{
+          date() === tracker.today()
+            ? 'Today is still open. Unfinished work stays pending until your day ends.'
+            : r.daily.dayEnded
+              ? 'Missed items come from saved schedules, deadlines and reminders.'
+              : 'Only explicitly scheduled work is shown.'
+        }}
+      </p>
+    </header>
+    <div class="daily-counts">
+      <div>
+        <strong>{{ r.daily.overview.tasksCompleted }}</strong
+        ><span>Tasks completed</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.tasksPending }}</strong
+        ><span>Tasks pending</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.tasksMissed }}</strong
+        ><span>Tasks missed / overdue</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.streaksCompleted }}</strong
+        ><span>Streaks completed</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.streaksPending }}</strong
+        ><span>Streaks pending</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.streaksMissed }}</strong
+        ><span>Streaks missed</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.learning }}</strong
+        ><span>Learning notes</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.applications }}</strong
+        ><span>Job applications</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.expenses }}</strong
+        ><span>Expenses recorded</span>
+      </div>
+      <div>
+        <strong>{{ r.daily.overview.goalsProgressed }}</strong
+        ><span>Goals progressed</span>
+      </div>
+    </div>
+    <div class="daily-columns">
+      <section class="panel daily-section">
+        <div class="section-heading">
+          <h2>What I completed</h2>
+          <span class="status-pill">{{ r.daily.completed.length }} recorded activities</span>
+        </div>
+        <div class="daily-timeline">
+          @for (item of r.daily.completed; track item.id) {
+            <a class="daily-item completed-item" [routerLink]="item.path"
+              ><span class="timeline-check">✓</span>
+              <div>
+                <strong>{{ item.title }}</strong
+                ><small>{{ item.kind }}{{ item.detail ? ' · ' + item.detail : '' }}</small>
+              </div>
+              <span class="status-pill">Completed</span></a
+            >
+          } @empty {
+            <p class="helper">
+              No completed activities recorded for this date. Your first small action will appear
+              here.
+            </p>
+          }
+        </div>
+      </section>
+      <section class="panel daily-section attention-section">
+        <h2>Needs attention</h2>
+        <p class="helper">Only saved schedules, deadlines and reminders appear here.</p>
+        @for (item of r.daily.attention; track item.id) {
+          <div class="daily-item">
+            <div>
+              <a [routerLink]="item.path">{{ item.title }}</a
+              ><small>{{ item.kind }}{{ item.detail ? ' · ' + item.detail : '' }}</small
+              ><span class="status-pill" [class.attention-status]="item.status !== 'Pending'">{{
+                item.status
+              }}</span>
+            </div>
+            @if (item.taskId) {
+              <button
+                class="text-button"
+                [attr.aria-label]="'Move to tomorrow: ' + item.title"
+                (click)="tomorrow(item)"
+                [disabled]="tracker.api.busy()"
+              >
+                Tomorrow →
+              </button>
+            }
+          </div>
+        } @empty {
+          <p class="helper">No unfinished scheduled work for this date.</p>
+        }
+      </section>
+    </div>
+    <section class="panel daily-section">
+      <h2>{{ date() === tracker.today() ? "Tomorrow's priorities" : 'Next day priorities' }}</h2>
+      <div class="priorities-grid">
+        @for (item of r.daily.tomorrow; track item.id) {
+          <a class="priority-item" [routerLink]="item.path"
+            ><strong>{{ item.title }}</strong
+            ><small
+              >{{ item.kind }} · {{ item.date }}{{ item.detail ? ' · ' + item.detail : '' }}</small
+            ></a
+          >
+        } @empty {
+          <p class="helper">
+            Nothing is scheduled for the next day. Add a task when you have a clear next step.
+          </p>
+        }
+      </div>
+    </section>
+    <div class="daily-columns">
+      <section class="panel daily-section">
+        <h2>Daily money summary</h2>
+        <div class="daily-money">
+          <div>
+            <span>Income received</span><strong>{{ cash(r.daily.finance.income) }}</strong>
+          </div>
+          <div>
+            <span>Money spent</span><strong>{{ cash(r.daily.finance.expenses) }}</strong>
+          </div>
+          <div>
+            <span>Net cash flow</span><strong>{{ cash(r.daily.finance.net) }}</strong>
+          </div>
+        </div>
+        @for (c of r.daily.finance.categories; track c.name) {
+          <div class="money-category">
+            <span>{{ c.name }}</span
+            ><strong>{{ cash(c.amount) }}</strong>
+          </div>
+        }
+        @for (w of r.daily.finance.warnings; track w.category) {
+          <p class="notice">
+            {{ w.category }} is {{ w.over ? 'over' : 'close to' }} its monthly budget:
+            {{ cash(w.spent) }} of {{ cash(w.limit) }} through this date.
+          </p>
+        }
+        <a class="text-button" routerLink="/finance">Open finance ↗</a>
+      </section>
+      <section class="panel daily-section">
+        <h2>What I learned</h2>
+        <p class="learning-total">
+          {{ r.daily.learning.notes }} {{ r.daily.learning.notes === 1 ? 'note' : 'notes'
+          }}<span>{{ r.daily.learning.minutes }} recorded minutes</span>
+        </p>
+        @for (topic of r.daily.learning.topics; track $index) {
+          <p class="learning-topic">{{ topic }}</p>
+        } @empty {
+          <p class="helper">
+            No learning notes saved for this day. Unscheduled learning is never marked missed.
+          </p>
+        }
+        <a class="text-button" routerLink="/learning">Open learning notes ↗</a>
+      </section>
+    </div>
+  } @else {
+    <div class="period-work-summary">
+      <span>{{ r.tasksPending }} tasks pending</span
+      ><span>{{ r.tasksMissed }} scheduled tasks missed or completed late</span
+      ><span>{{ r.followUpsCompleted }} follow-ups completed</span
+      ><span>{{ r.followUpsOverdue }} follow-ups overdue</span>
+    </div>
+    <p class="helper report-range">
+      {{ pretty(range().start) }} – {{ pretty(range().end) }} · actual records through
+      {{ pretty(end()) }}. Comparisons use the previous full {{ period() }}.
+    </p>
+    <div class="life-stats report-growth">
+      <div>
+        <span>Streak consistency</span><strong>{{ summary().consistency }}%</strong
+        ><small>Previous {{ previous().consistency }}%</small>
+      </div>
+      <div>
+        <span>Learning</span><strong>{{ (summary().learningMinutes / 60).toFixed(1) }} h</strong
+        ><small>Previous {{ (previous().learningMinutes / 60).toFixed(1) }} h</small>
+      </div>
+      <div>
+        <span>Applications</span><strong>{{ summary().applications }}</strong
+        ><small>Previous {{ previous().applications }}</small>
+      </div>
+      <div>
+        <span>Tasks completed</span><strong>{{ summary().tasksCompleted }}</strong
+        ><small>Previous {{ previous().tasksCompleted }}</small>
+      </div>
+      <div>
+        <span>Goals progressed</span><strong>{{ summary().goalsProgressed }}</strong
+        ><small>{{ summary().goalsCompleted }} goals completed</small>
+      </div>
+    </div>
+    <section class="report-finance panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">MONEY IN PERSPECTIVE</span>
+          <h2>Your financial summary</h2>
+        </div>
+        <a class="text-button" routerLink="/finance">Open finance ↗</a>
+      </div>
+      <div class="life-stats report-money">
+        <div>
+          <span>Income received</span><strong>{{ cash(summary().income) }}</strong
+          ><small>Previous {{ cash(previous().income) }}</small>
+        </div>
+        <div>
+          <span>Money spent</span><strong>{{ cash(summary().expenses) }}</strong
+          ><small>Previous {{ cash(previous().expenses) }}</small>
+        </div>
+        <div>
+          <span>Net cash flow</span><strong>{{ cash(summary().net) }}</strong
+          ><small>Transfers excluded</small>
+        </div>
+        <div>
+          <span>Net savings contributions</span><strong>{{ cash(summary().savedInPeriod) }}</strong
+          ><small>Allocations minus withdrawals</small>
+        </div>
+        <div>
+          <span>Available at period end</span><strong>{{ cash(summary().available) }}</strong
+          ><small>From tracked balances</small>
+        </div>
+      </div>
+    </section>
+    <section class="panel spaced-panel">
+      <span class="eyebrow">WHAT THE NUMBERS MEAN</span>
+      <h2>Your progress, plainly</h2>
+      <p>
+        You earned {{ cash(summary().income) }}, spent {{ cash(summary().expenses) }}, and had a net
+        cash flow of {{ cash(summary().net) }} in this period.
+      </p>
+      @if (categories().length) {
+        <p class="helper">
+          {{ categories()[0].name }} was your largest spending category at
+          {{ cash(categories()[0].amount) }}.
+        </p>
+      }
+      @if (previous().expenses > 0) {
+        <p class="helper">
+          Spending was {{ summary().expenses > previous().expenses ? 'higher' : 'lower' }} by
+          {{ cash(Math.abs(summary().expenses - previous().expenses)) }} compared with the previous
+          full {{ period() }}. Lower spending leaves more cash available; compare the dates above if
+          this period is incomplete.
+        </p>
+      } @else {
+        <p class="helper">
+          There are no recorded expenses in the comparison period, so a percentage trend would be
+          misleading.
+        </p>
+      }
+      <div class="life-stats">
+        <div>
+          <span>Learning notes</span><strong>{{ summary().notesCreated }}</strong
+          ><small
+            >{{ summary().learningDays }} active learning days ·
+            {{ (summary().learningMinutes / 60).toFixed(1) }} recorded hours</small
+          >
+        </div>
+        <div>
+          <span>Active streaks</span><strong>{{ summary().activeStreaks }}</strong
+          ><small
+            >Best {{ summary().longestStreak }} periods · {{ summary().missedDays }} missed
+            scheduled days</small
+          >
+        </div>
+        <div>
+          <span>Automatic check-ins</span><strong>{{ summary().automaticCompletions }}</strong
+          ><small>Derived from matching application records</small>
+        </div>
+        <div>
+          <span>Goals in progress</span><strong>{{ summary().goalsInProgress }}</strong
+          ><small
+            >{{ summary().overdueGoals }} overdue · {{ summary().goalsCompleted }} completed in this
+            period</small
+          >
+        </div>
+      </div>
+      <p class="helper">
+        Topics explored: {{ summary().topics.join(', ') || 'No learning notes recorded yet.' }}
+      </p>
+    </section>
+    <section class="panel spaced-panel">
+      <h2>Where you're heading</h2>
+      <p class="helper">
+        {{ summary().completedDays }} days contained successful habit completions in this period.
+      </p>
+      @if (summary().learningPeak; as peak) {
+        <p class="helper">
+          Your most active learning day was {{ pretty(peak.date) }} with {{ peak.count }}
+          {{ peak.count === 1 ? 'note' : 'notes' }}.
+        </p>
+      }
+      @for (t of summary().targetProgress; track t.id) {
+        <p class="helper">
+          The monthly {{ t.kind }} {{ t.kind === 'expense' ? 'limit' : 'target'
+          }}{{ t.source ? ' for ' + t.source : '' }} is at
+          {{ Math.round((t.actual / t.amount) * 100) }}% · {{ cash(t.actual) }} of
+          {{ cash(t.amount) }} through {{ pretty(end()) }}.
+        </p>
+      }
+      @for (g of summary().savingsProgress; track g.id) {
+        <p class="helper">
+          {{ g.name }}: {{ g.percent }}% of the savings goal recorded by {{ pretty(end()) }}.
+        </p>
+      }
+      @for (g of summary().upcomingGoals; track g.title) {
+        <p class="helper">Coming up: {{ g.title }} · {{ pretty(g.deadline) }}</p>
+      }
+      @if (
+        !summary().targetProgress.length &&
+        !summary().savingsProgress.length &&
+        !summary().upcomingGoals.length
+      ) {
+        <p class="helper">
+          Add a financial target or goal to see progress and upcoming deadlines here.
+        </p>
+      }
+    </section>
+    <div class="life-columns">
+      <section class="panel spaced-panel">
+        <h2>Biggest spending categories</h2>
+        @for (group of categories(); track group.name) {
+          <div class="distribution-row">
+            <div>
+              <span>{{ group.name }}</span
+              ><strong>{{ cash(group.amount) }}</strong>
+            </div>
+            <app-progress
+              [value]="summary().expenses ? (group.amount / summary().expenses) * 100 : 0"
+            />
+          </div>
+        } @empty {
+          <p class="helper">No recorded expenses in this period.</p>
+        }
+        <a class="text-button" routerLink="/finance" [queryParams]="{ tab: 'Reports' }"
+          >Detailed finance reports & CSV ↗</a
+        >
+      </section>
+      <section class="panel spaced-panel">
+        <span class="eyebrow">YOUR PERIOD IN REVIEW</span>
+        <h2>Small actions add up</h2>
+        <p class="report-summary">
+          {{ summary().learningMinutes }} minutes of learning, {{ summary().applications }}
+          {{ summary().applications === 1 ? 'application' : 'applications' }}, and
+          {{ summary().tasksCompleted }} completed
+          {{ summary().tasksCompleted === 1 ? 'task' : 'tasks' }}.
+        </p>
+        <p class="helper">
+          {{ summary().consistency }}% of recorded streak targets were reached.
+          {{ summary().goalsProgressed }} goals moved forward through saved progress changes.
+        </p>
+        <p class="helper">
+          Older tasks without a recorded completion date are kept in the planner, but excluded from
+          dated completion reports. Goals are counted from progress history, not guessed from their
+          current status.
+        </p>
+        <a class="text-button" routerLink="/statistics">Open detailed habit insights ↗</a>
+      </section>
+    </div>
+
+    <section class="panel spaced-panel">
+      <h2>Frequently missed scheduled streaks</h2>
+      @for (a of r.missedHabits; track a.id) {
+        <p class="helper">
+          {{ a.title }} · {{ a.count }} missed tracking {{ a.count === 1 ? 'period' : 'periods' }}
+        </p>
+      } @empty {
+        <p class="helper">No missed scheduled streak periods in this range.</p>
+      }
+    </section>
+  }
+}

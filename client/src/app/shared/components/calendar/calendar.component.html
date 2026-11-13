@@ -1,0 +1,55 @@
+<div class="calendar-top">
+  <h3>{{ pretty(month(), { month: 'long', year: 'numeric' }) }}</h3>
+  <div class="calendar-arrows">
+    <button class="icon-button" aria-label="Previous month" (click)="move(-1)">
+      <app-icon name="left" [size]="17" /></button
+    ><button class="icon-button" aria-label="Next month" (click)="move(1)">
+      <app-icon name="right" [size]="17" />
+    </button>
+  </div>
+</div>
+<div class="calendar-grid" [class.large]="large()">
+  @for (day of weekdays; track $index) {
+    <span class="weekday">{{ day }}</span>
+  }
+  @for (d of cells(); track d.date) {
+    <button
+      class="calendar-day"
+      [class.other-month]="d.outside"
+      [class.today]="d.date === tracker.today()"
+      [class.success]="d.done > 0"
+      [class.partial]="d.state === 'partial' || (d.done > 0 && d.done < d.due)"
+      [class.rest-day]="d.state === 'rest'"
+      [class.frozen-day]="d.state === 'frozen'"
+      [class.paused-day]="d.state === 'paused'"
+      [class.missed]="d.missed"
+      [class.upcoming]="d.date > tracker.today() && d.due > 0"
+      [class.selected-day]="d.date === selected()"
+      [disabled]="d.outside"
+      (click)="select.emit(d.date)"
+      [attr.aria-label]="
+        pretty(d.date, { day: 'numeric', month: 'long', year: 'numeric' }) +
+        ': ' +
+        d.done +
+        ' completed, ' +
+        d.due +
+        ' scheduled · ' +
+        d.status
+      "
+      [attr.title]="d.status"
+    >
+      <span>{{ d.number }}</span>
+      @if (large() && d.due) {
+        <small>{{ d.done }} / {{ d.due }}</small>
+      }
+      @if (['rest', 'frozen', 'paused'].includes(d.state)) {
+        <small class="day-symbol">{{
+          d.state === 'frozen' ? '◇' : d.state === 'paused' ? 'Ⅱ' : '—'
+        }}</small>
+      }
+      @if (d.done) {
+        <i></i>
+      }
+    </button>
+  }
+</div>

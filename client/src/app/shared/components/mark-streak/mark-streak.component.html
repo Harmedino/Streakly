@@ -1,0 +1,37 @@
+<div class="mark-control">
+  <div class="mark-buttons">
+    <button
+      type="button"
+      class="btn primary mark-streak-button"
+      [class.marked]="done()"
+      [disabled]="disabled()"
+      [attr.aria-label]="
+        activity().automation
+          ? 'Automatic tracking: ' + activity().name
+          : done()
+            ? 'Already marked: ' + activity().name
+            : 'Complete ' + activity().name
+      "
+      [attr.aria-describedby]="'mark-reason-' + activity().id"
+      (click)="mark()"
+    >
+      <app-icon name="check" [size]="17" />{{
+        activity().automation ? 'Automatic' : done() ? 'Marked' : 'Mark streak'
+      }}
+    </button>
+    @if (done() && !activity().automation) {
+      <button
+        type="button"
+        class="text-button"
+        [attr.aria-label]="'Undo ' + activity().name"
+        (click)="undo()"
+      >
+        Undo
+      </button>
+    }
+  </div>
+  <span class="mark-reason" [id]="'mark-reason-' + activity().id">{{ reason() }}</span>
+</div>
+@if (record()) {
+  <app-record-form [activity]="activity()" [date]="tracker.today()" (close)="record.set(false)" />
+}

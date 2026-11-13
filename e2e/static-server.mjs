@@ -2,7 +2,7 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
-const root = resolve('dist/streakly/browser');
+const root = resolve('client/dist/streakly/browser');
 const types = {
   '.html': 'text/html',
   '.js': 'application/javascript',

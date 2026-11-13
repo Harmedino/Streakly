@@ -1,0 +1,19 @@
+<div class="heatmap-scroll">
+  <div class="heatmap" role="group" aria-label="Completion history for the last 26 weeks">
+    @for (day of days(); track day.date) {
+      <button
+        [disabled]="day.date > tracker.today()"
+        [class.level1]="day.count === 1"
+        [class.level2]="day.count === 2"
+        [class.level3]="day.count >= 3"
+        [attr.title]="pretty(day.date) + ': ' + day.count + ' completions'"
+        [attr.aria-label]="pretty(day.date) + ': ' + day.count + ' completions'"
+        (click)="select.emit(day.date)"
+      ></button>
+    }
+  </div>
+</div>
+<div class="heatmap-caption">
+  <span>Every small square tells a story.</span
+  ><span>Less <i></i><i class="level1"></i><i class="level2"></i><i class="level3"></i> More</span>
+</div>

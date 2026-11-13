@@ -1,0 +1,10 @@
+<div class="empty">
+  <div class="empty-symbol"><app-icon name="sprout" [size]="36" /></div>
+  <h3>{{ title() }}</h3>
+  <p>{{ description() }}</p>
+  @if (action()) {
+    <button class="btn primary" (click)="activate.emit()">
+      <app-icon name="plus" [size]="17" />{{ action() }}
+    </button>
+  }
+</div>

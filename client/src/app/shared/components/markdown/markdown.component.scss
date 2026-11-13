@@ -1,0 +1,47 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.note-prose {
+  font-size: 14px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.note-prose :is(h2, h3, h4) {
+  font-size: 17px;
+  margin: 20px 0 10px;
+}
+.note-prose p {
+  margin: 0 0 10px;
+}
+.note-prose pre {
+  padding: 16px;
+  background: var(--hover);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow-x: auto;
+  white-space: pre;
+  max-width: 100%;
+}
+.note-prose code {
+  font-family: monospace;
+  font-size: 12px;
+}
+.note-prose .list-line,
+.note-prose .checklist-line {
+  margin: 3px 0;
+}
+
+.note-prose blockquote {
+  border-left: 3px solid var(--accent);
+  margin-left: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+.note-prose ul,
+.note-prose ol {
+  padding-left: 22px;
+}
+.note-prose a {
+  color: var(--accent);
+}

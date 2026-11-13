@@ -1,0 +1,27 @@
+// Component presentation uses the shared design tokens.
+
+.editor-modal {
+  width: min(900px, calc(100vw - 32px));
+  max-width: 900px;
+}
+@media (max-width: 650px) {
+  .modal-backdrop:has(.editor-modal) {
+    padding: 0;
+    align-items: stretch;
+  }
+  .editor-modal {
+    border-radius: 0;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: 18px;
+  }
+  .editor-modal .modal-head {
+    position: sticky;
+    top: -18px;
+    background: var(--surface);
+    z-index: 5;
+    padding-top: 14px;
+  }
+}

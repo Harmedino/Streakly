@@ -1,0 +1,98 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">A MOMENT TO REFLECT</span>
+    <h1>Personal journal<span class="greeting-dot">.</span></h1>
+    <p>A quiet place for the whole story of your day.</p>
+  </div>
+  <button class="btn primary" (click)="create()">Write an entry</button>
+</div>
+<div class="toolbar">
+  <input
+    aria-label="Search journal"
+    placeholder="Find a thought, a day, a memory…"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+  />
+  <div class="tabs">
+    <button [class.active]="view() === 'timeline'" (click)="view.set('timeline')">Timeline</button
+    ><button [class.active]="view() === 'calendar'" (click)="view.set('calendar')">Calendar</button>
+  </div>
+  @if (date()) {
+    <button class="text-button" (click)="date.set('')">All entries</button>
+  }
+</div>
+<div class="journal-layout" [class.with-calendar]="view() === 'calendar'">
+  @if (view() === 'calendar') {
+    <aside class="panel journal-calendar">
+      <h2>Choose a day</h2>
+      <app-calendar
+        [recordDates]="dates()"
+        recordLabel="journal entries"
+        [selected]="date()"
+        (select)="date.set($event)"
+      />
+    </aside>
+  }
+  <div class="journal-timeline">
+    @for (j of list(); track j.id) {
+      <article class="journal-entry">
+        <div class="journal-date">
+          <strong>{{ pretty(j.date, { day: 'numeric' }) }}</strong
+          ><span>{{ pretty(j.date, { month: 'short', year: 'numeric' }) }}</span>
+        </div>
+        <div class="journal-body">
+          <div class="entry-heading">
+            <h2>{{ pretty(j.date, { weekday: 'long', day: 'numeric', month: 'long' }) }}</h2>
+            @if (j.mood) {
+              <span class="status-pill">Mood {{ j.mood }}/5</span>
+            }
+          </div>
+          @if (j.content) {
+            <p class="journal-prose">{{ j.content }}</p>
+          }
+          @for (p of prompts; track p.key) {
+            @if (j[p.key]) {
+              <p class="journal-prompt">
+                <strong>{{ p.label }}</strong
+                >{{ j[p.key] }}
+              </p>
+            }
+          }
+          <div class="quick-actions">
+            <button class="text-button" (click)="editing.set(j)">Edit entry</button
+            ><button class="text-button destructive" (click)="deleting.set(j)">Delete entry</button
+            ><a class="text-button" [href]="'/reports?date=' + j.date">Daily report ↗</a>
+          </div>
+        </div>
+      </article>
+    } @empty {
+      <section class="panel">
+        <app-empty
+          title="Make a little room for yourself."
+          description="Write freely. Prompts and mood are there only when you want them."
+          action="Write an entry"
+          (activate)="create()"
+        />
+      </section>
+    }
+  </div>
+</div>
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+@if (editing() !== undefined) {
+  <app-journal-form
+    [entry]="editing() ?? null"
+    [initialDate]="date()"
+    (close)="editing.set(undefined)"
+  />
+}
+@if (deleting(); as j) {
+  <app-confirm
+    title="Delete journal entry?"
+    [message]="'Remove your writing for ' + j.date + '?'"
+    label="Delete entry"
+    (cancel)="deleting.set(null)"
+    (confirm)="remove()"
+  />
+}

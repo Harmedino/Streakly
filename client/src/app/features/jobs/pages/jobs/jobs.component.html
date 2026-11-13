@@ -1,0 +1,273 @@
+@if (id()) {
+  <a class="text-button" routerLink="/jobs">← All applications</a>
+  @if (selected(); as j) {
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">{{ j.company }}</span>
+        <h1>{{ j.position }}</h1>
+        <p>Applied {{ pretty(j.date) }}{{ j.location ? ' · ' + j.location : '' }}</p>
+      </div>
+      <button class="btn" (click)="editing.set(j)">Edit application</button>
+    </div>
+    <div class="job-detail-grid">
+      <div>
+        <section class="panel detail-section">
+          <div class="section-heading">
+            <h2>Application details</h2>
+            <label class="status-control"
+              >Current status<select
+                aria-label="Application status"
+                [ngModel]="j.status"
+                (ngModelChange)="status(j, $event)"
+                [disabled]="tracker.api.busy()"
+              >
+                @for (s of statuses; track s) {
+                  <option>{{ s }}</option>
+                }
+              </select></label
+            >
+          </div>
+          @if (j.link) {
+            <a class="text-button" [href]="j.link" target="_blank" rel="noopener noreferrer"
+              >Open original job ↗</a
+            >
+          }
+          @if (j.salary) {
+            <p>Salary: {{ j.salary }}</p>
+          }
+          @if (j.notes) {
+            <p class="record-text">{{ j.notes }}</p>
+          }
+          @if (j.interview) {
+            <h3>Interview details</h3>
+            <p class="record-text">{{ j.interview }}</p>
+          }
+        </section>
+        <section class="panel detail-section">
+          <h2>Application timeline</h2>
+          <p class="helper">
+            Status changes are recorded automatically. Add conversations, assessments and interview
+            notes here.
+          </p>
+          @for (e of timeline(); track e.id) {
+            <div class="event">
+              <time>{{ pretty(e.date) }}</time
+              ><strong>{{ e.title }}</strong>
+              @if (e.note) {
+                <p class="record-text">{{ e.note }}</p>
+              }
+              @if (e.kind === 'note') {
+                <div class="quick-actions">
+                  <button class="text-button" (click)="editEvent(e)">Edit event</button
+                  ><button
+                    class="text-button destructive"
+                    (click)="deleting.set({ job: j, event: e })"
+                  >
+                    Delete event
+                  </button>
+                </div>
+              } @else {
+                <small class="helper">Status history</small>
+              }
+            </div>
+          }
+          <form class="compact-entry" (ngSubmit)="addEvent(j)" #eventForm="ngForm">
+            <h3>{{ eventId ? 'Edit timeline event' : 'Add a timeline event' }}</h3>
+            <label
+              >Event title<input
+                name="eventTitle"
+                [(ngModel)]="eventTitle"
+                maxlength="200"
+                required
+                placeholder="Assessment submitted" /></label
+            ><label
+              >Event date<input
+                type="date"
+                name="eventDate"
+                [(ngModel)]="eventDate"
+                [min]="j.date"
+                [max]="tracker.today()"
+                required /></label
+            ><label
+              >Event notes <span class="optional">optional</span
+              ><textarea
+                name="eventNote"
+                [(ngModel)]="eventNote"
+                maxlength="5000"
+                rows="3"
+              ></textarea>
+            </label>
+            <div class="quick-actions">
+              <button class="btn primary" [disabled]="eventForm.invalid || tracker.api.busy()">
+                {{ eventId ? 'Save event' : 'Add event' }}
+              </button>
+              @if (eventId) {
+                <button
+                  type="button"
+                  class="btn"
+                  (click)="eventId = ''; eventTitle = ''; eventNote = ''"
+                >
+                  Cancel
+                </button>
+              }
+            </div>
+          </form>
+        </section>
+      </div>
+      <aside>
+        <section class="panel detail-section">
+          <h2>Follow-ups</h2>
+          @for (f of j.followUps ?? []; track f.id) {
+            <div class="follow-row">
+              <button
+                class="completion-button"
+                [class.checked]="f.done"
+                [attr.aria-label]="(f.done ? 'Undo follow-up: ' : 'Complete follow-up: ') + f.title"
+                (click)="toggleFollow(j, f)"
+              >
+                {{ f.done ? '✓' : '' }}
+              </button>
+              <div>
+                <strong>{{ f.title }}</strong
+                ><small
+                  >{{ pretty(f.date) }} ·
+                  {{
+                    f.done ? 'Completed' : f.date < tracker.today() ? 'Overdue' : 'Upcoming'
+                  }}</small
+                >
+                <div class="quick-actions">
+                  <button class="text-button" (click)="editFollow(f)">Edit</button
+                  ><button
+                    class="text-button destructive"
+                    (click)="deleting.set({ job: j, follow: f })"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <p class="helper">Add a reminder when there is an actual next step.</p>
+          }
+          <form class="compact-entry" (ngSubmit)="addFollow(j)" #followForm="ngForm">
+            <label
+              >Follow-up task<input
+                name="followTitle"
+                [(ngModel)]="followTitle"
+                required
+                maxlength="200"
+                placeholder="Follow up with recruiter" /></label
+            ><label
+              >Follow-up date<input type="date" name="followDate" [(ngModel)]="followDate" required
+            /></label>
+            <div class="quick-actions">
+              <button class="btn" [disabled]="followForm.invalid || tracker.api.busy()">
+                {{ followId ? 'Save follow-up' : 'Add follow-up' }}
+              </button>
+              @if (followId) {
+                <button type="button" class="text-button" (click)="followId = ''; followTitle = ''">
+                  Cancel
+                </button>
+              }
+            </div>
+          </form>
+        </section>
+        <button class="text-button destructive" (click)="deleting.set({ job: j })">
+          Delete application
+        </button>
+      </aside>
+    </div>
+  } @else {
+    <app-empty
+      title="Application not found"
+      description="Return to your application list to continue."
+    />
+  }
+} @else {
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">YOUR NEXT CHAPTER</span>
+      <h1>Job applications<span class="greeting-dot">.</span></h1>
+      <p>Every application, conversation and next step in one place.</p>
+    </div>
+    <button class="btn primary" (click)="editing.set(null)">Add application</button>
+  </div>
+  <div class="job-stats">
+    @for (s of stats(); track s.label) {
+      <div>
+        <strong>{{ s.value }}</strong
+        ><span>{{ s.label }}</span>
+      </div>
+    }
+  </div>
+  <div class="toolbar">
+    <input
+      aria-label="Search applications"
+      placeholder="Company, role or notes…"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+    /><select
+      aria-label="Application status filter"
+      [ngModel]="filter()"
+      (ngModelChange)="filter.set($event)"
+    >
+      <option value="">All statuses</option>
+      @for (s of statuses; track s) {
+        <option>{{ s }}</option>
+      }
+    </select>
+  </div>
+  <section class="panel application-list">
+    @for (j of list(); track j.id) {
+      <article class="application-row">
+        <span class="company-avatar" aria-hidden="true">{{ j.company.slice(0, 1) }}</span>
+        <div class="application-copy">
+          <a [routerLink]="['/jobs', j.id]">{{ j.position }}</a>
+          <p>{{ j.company }} · {{ pretty(j.date) }}</p>
+          @for (f of j.followUps ?? []; track f.id) {
+            @if (!f.done) {
+              <small
+                >{{ f.date < tracker.today() ? 'Overdue: ' : 'Next: ' }}{{ f.title }} ·
+                {{ f.date }}</small
+              >
+            }
+          }
+        </div>
+        <select
+          [attr.aria-label]="'Status for ' + j.company"
+          [ngModel]="j.status"
+          (ngModelChange)="status(j, $event)"
+          [disabled]="tracker.api.busy()"
+        >
+          @for (s of statuses; track s) {
+            <option>{{ s }}</option>
+          }</select
+        ><a class="btn" [routerLink]="['/jobs', j.id]">Open application</a>
+      </article>
+    } @empty {
+      <app-empty
+        title="Keep track of your next opportunity."
+        description="Record an application you submitted, then track conversations and follow-ups."
+        action="Add application"
+        (activate)="editing.set(null)"
+      />
+    }
+  </section>
+}
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+@if (editing() !== undefined) {
+  <app-job-form [entry]="editing() ?? null" (close)="editing.set(undefined)" />
+}
+@if (deleting(); as d) {
+  <app-confirm
+    title="Delete this record?"
+    [message]="
+      'Remove ' + (d.event?.title || d.follow?.title || d.job.company + ' application') + '?'
+    "
+    label="Confirm deletion"
+    (cancel)="deleting.set(null)"
+    (confirm)="remove()"
+  />
+}

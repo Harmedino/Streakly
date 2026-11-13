@@ -10,6 +10,7 @@ test('mobile to-do list supports creation, edits, completion, undo, persistence 
   await page.getByRole('link', { name: 'Daily Planner', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Daily planner');
   await page.getByLabel('What needs doing?').fill('Book an appointment');
+  await page.getByText('More Options', { exact: true }).click();
   await page.getByLabel('Due date optional').fill('2027-01-01');
   await page.getByRole('button', { name: 'Add task', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Book an appointment' })).toBeVisible();

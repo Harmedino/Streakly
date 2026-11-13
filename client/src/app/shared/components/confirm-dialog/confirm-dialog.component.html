@@ -1,0 +1,27 @@
+<app-dialog [title]="title()" (close)="cancel.emit()"
+  ><p class="muted">{{ message() }}</p>
+  @if (requireWord()) {
+    <label
+      >Type {{ requireWord() }} to confirm<input
+        aria-label="Reset confirmation"
+        [(ngModel)]="typed"
+        autocomplete="off"
+    /></label>
+  }
+  @if (api.error()) {
+    <p class="error" role="alert">{{ api.error() }}</p>
+  }
+  @if (offerBackup()) {
+    <button class="text-button" (click)="backup.emit()">Export data before resetting</button>
+  }
+  <div class="form-actions">
+    <button class="btn" [disabled]="api.busy()" (click)="cancel.emit()">Cancel</button
+    ><button
+      class="btn danger"
+      [disabled]="api.busy() || (!!requireWord() && typed !== requireWord())"
+      (click)="confirm.emit(typed)"
+    >
+      {{ api.busy() ? 'Processing…' : label() }}
+    </button>
+  </div></app-dialog
+>

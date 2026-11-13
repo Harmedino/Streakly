@@ -1,0 +1,24 @@
+<section class="break-controls">
+  <p class="helper">
+    <strong>{{ status() }}</strong> · {{ explanation() }}
+  </p>
+  <div class="break-buttons">
+    <button
+      class="btn"
+      type="button"
+      [disabled]="!!tracker.entry(activity(), date()) || frozen()"
+      (click)="change('rest')"
+    >
+      {{ rest() ? 'Remove planned rest' : 'Plan rest day' }}
+    </button>
+    @if (frozen()) {
+      <button class="btn" type="button" (click)="change('unfreeze')">Remove freeze</button>
+    } @else if (eligible()) {
+      <button class="btn" type="button" (click)="change('freeze')">Use streak freeze</button>
+    }
+  </div>
+  <p class="helper">
+    {{ used() }} of 2 freezes used · {{ 2 - used() }} remaining in {{ date().slice(0, 7) }}. Freezes
+    are manual and only protect past missed days.
+  </p>
+</section>

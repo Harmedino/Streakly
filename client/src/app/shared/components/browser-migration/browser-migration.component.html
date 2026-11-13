@@ -1,0 +1,43 @@
+@if (raw && !api.migrated() && !dismissed()) {
+  <section class="panel spaced-panel migration-panel">
+    <div class="section-heading">
+      <div>
+        <span class="eyebrow">KEEP YOUR HISTORY</span>
+        <h2>Bring your browser records with you</h2>
+      </div>
+      <button class="text-button" (click)="dismissed.set(true)" [disabled]="busy()">Later</button>
+    </div>
+    <p class="helper">
+      This browser has an older workspace. Preview it, download a backup, then confirm its import.
+      Browser storage will not be cleared.
+    </p>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    @if (preview()) {
+      <div class="migration-counts">
+        @for (count of counts(); track count[0]) {
+          <span>{{ count[1] }} {{ count[0] }}</span>
+        }
+      </div>
+      <p class="notice">
+        {{
+          preview()!.alreadyMigrated
+            ? 'These exact records are already imported.'
+            : 'Existing server records are retained. Conflicting IDs stop the import for review.'
+        }}
+      </p>
+      <button
+        class="btn primary"
+        [disabled]="busy() || !backedUp || preview()!.alreadyMigrated"
+        (click)="migrate()"
+      >
+        {{ busy() ? 'Importing…' : 'Confirm import to my account' }}
+      </button>
+    }
+    <div class="quick-actions">
+      <button class="btn" (click)="backup()">Download original backup</button
+      ><button class="btn" (click)="review()" [disabled]="busy()">Preview browser records</button>
+    </div>
+  </section>
+}

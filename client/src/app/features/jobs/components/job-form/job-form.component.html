@@ -1,0 +1,67 @@
+<app-dialog [title]="entry() ? 'Edit application' : 'Add application'" (close)="close.emit()"
+  ><form (ngSubmit)="save()" #form="ngForm">
+    <label
+      >Company name<input
+        name="company"
+        [(ngModel)]="value.company"
+        required
+        maxlength="120" /></label
+    ><label
+      >Job role<input name="role" [(ngModel)]="value.position" required maxlength="120" /></label
+    ><label
+      >Date applied<input
+        type="date"
+        name="date"
+        [(ngModel)]="value.date"
+        [max]="tracker.today()"
+        required
+    /></label>
+    <details>
+      <summary>More Options</summary>
+      <label
+        >Application status<select
+          aria-label="Application status"
+          name="status"
+          [(ngModel)]="value.status"
+        >
+          @for (s of statuses; track s) {
+            <option>{{ s }}</option>
+          }
+        </select></label
+      ><label
+        >Job URL<input type="url" name="url" [(ngModel)]="value.link" maxlength="2000"
+      /></label>
+      <div class="form-grid">
+        <label>Salary<input name="salary" [(ngModel)]="value.salary" maxlength="200" /></label
+        ><label
+          >Location<input name="location" [(ngModel)]="value.location" maxlength="200"
+        /></label>
+      </div>
+      <label
+        >Notes<textarea
+          name="notes"
+          [(ngModel)]="value.notes"
+          maxlength="5000"
+          rows="4"
+        ></textarea></label
+      ><label
+        >Interview details<textarea
+          name="interview"
+          [(ngModel)]="value.interview"
+          maxlength="5000"
+          rows="3"
+          placeholder="Time, contact, meeting link or preparation notes…"
+        ></textarea>
+      </label>
+    </details>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <div class="form-actions">
+      <button class="btn" type="button" (click)="close.emit()">Cancel</button
+      ><button class="btn primary" [disabled]="form.invalid || tracker.api.busy()">
+        {{ tracker.api.busy() ? 'Saving…' : 'Save application' }}
+      </button>
+    </div>
+  </form></app-dialog
+>

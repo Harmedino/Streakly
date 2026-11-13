@@ -1,0 +1,76 @@
+<app-dialog [title]="activity().icon + ' ' + activity().name" (close)="close.emit()"
+  ><p class="muted">
+    {{
+      pretty(selectedDate(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    }}
+  </p>
+  <label
+    >Completion date<input
+      type="date"
+      name="completionDate"
+      [ngModel]="selectedDate()"
+      (ngModelChange)="changeDate($event)"
+      [min]="activity().startDate"
+      [max]="tracker.today()"
+      required
+  /></label>
+  <div class="record-date-shortcuts">
+    <button type="button" class="btn" (click)="changeDate(tracker.today())">Today</button
+    ><button
+      type="button"
+      class="btn"
+      [disabled]="yesterday() < activity().startDate"
+      (click)="changeDate(yesterday())"
+    >
+      Yesterday
+    </button>
+  </div>
+  <p class="helper">
+    You choose when to mark this activity. Past entries count for the day you select. A new check-in
+    day starts at local midnight, not 24 hours after your last entry.
+  </p>
+  @if (dateError) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+  <app-break-controls
+    [hidden]="dateError"
+    [activity]="activity()"
+    [date]="selectedDate()"
+    (changed)="initialRevision = tracker.data().revision ?? 0"
+  />
+  @if (selectedDate() <= tracker.today() && !blocked()) {
+    <form (ngSubmit)="save()" #form="ngForm">
+      <label
+        >Progress · target {{ activity().quantityTarget }} {{ activity().unit
+        }}<input
+          type="number"
+          name="quantity"
+          [(ngModel)]="quantity"
+          min="0"
+          step="any"
+          max="1000000"
+          required /></label
+      ><label
+        >A note for yourself<textarea
+          name="note"
+          [(ngModel)]="note"
+          maxlength="1000"
+          rows="3"
+          placeholder="What did you do? How did it feel?"
+        ></textarea>
+      </label>
+      <p class="helper">
+        {{ Math.max(0, activity().quantityTarget - quantity) }} {{ activity().unit }} remaining.
+        Target reached automatically when progress meets your goal.
+      </p>
+      @if (error && !dateError) {
+        <p class="error" role="alert">{{ error }}</p>
+      }
+      <p class="helper">Set progress to 0 to remove this completion.</p>
+      <div class="form-actions">
+        <button type="button" class="btn" (click)="close.emit()">Cancel</button
+        ><button class="btn primary" [disabled]="form.invalid || dateError">Save progress</button>
+      </div>
+    </form>
+  }
+</app-dialog>

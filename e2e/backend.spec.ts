@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { emptyData } from '../src/app/models/tracker';
+import { emptyData } from '../client/src/app/core/models/tracker';
 const password = 'a-strong-personal-password-2026';
 async function signup(page: Page) {
   const email = 'browser-' + crypto.randomUUID() + '@example.com';
@@ -12,8 +12,16 @@ async function signup(page: Page) {
   return email;
 }
 async function save(page: Page, label = 'Save record') {
-  await page.getByRole('dialog').getByRole('button', { name: label, exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  if (label === 'Save note') {
+    await page
+      .locator('app-learning-editor')
+      .getByRole('button', { name: label, exact: true })
+      .click();
+    await expect(page.locator('app-rich-editor')).not.toBeVisible();
+  } else {
+    await page.getByRole('dialog').getByRole('button', { name: label, exact: true }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  }
 }
 test('server-backed migration, simple notes, automatic streaks, persistence and protected reset work together', async ({
   page,
@@ -57,16 +65,17 @@ test('server-backed migration, simple notes, automatic streaks, persistence and 
   await expect(d).not.toBeVisible();
   await page.goto('/learning');
   await page.getByRole('button', { name: 'New note', exact: true }).click();
-  d = page.getByRole('dialog');
+  d = page.locator('app-learning-editor');
   await d
-    .getByLabel('Note content', { exact: true })
+    .getByRole('textbox', { name: 'Note content', exact: true })
     .fill(
       '## A useful discovery\n**Small notes** can build consistency.\n- [ ] Practise tomorrow\n```\nconst progress = true;\n```',
     );
   await save(page, 'Save note');
   await expect(page.locator('app-markdown').filter({ hasText: 'Small notes' })).toBeVisible();
   await page.reload();
-  await expect(page.getByText('Small notes', { exact: true })).toBeVisible();
+  await page.locator('.note-list-item').filter({ hasText: 'Small notes' }).click();
+  await expect(page.locator('.note-reader')).toContainText('Small notes');
   await page.goto('/activities');
   await expect(
     page.getByRole('button', { name: 'Automatic tracking: Daily learning' }),
@@ -171,8 +180,10 @@ test('all server pages and compact forms fit six representative viewport widths'
     }
     await page.goto('/learning');
     await page.getByRole('button', { name: 'New note', exact: true }).click();
-    await expect(page.getByRole('dialog')).toBeInViewport();
-    await page.getByLabel('Note content', { exact: true }).fill('A mobile-friendly draft.');
+    await expect(page.locator('app-rich-editor')).toBeInViewport();
+    await page
+      .getByRole('textbox', { name: 'Note content', exact: true })
+      .fill('A mobile-friendly draft.');
     await page.screenshot({ path: '/tmp/streakly-backend/notes-' + width + '.png' });
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Sign out', exact: true }).isVisible();
@@ -184,9 +195,9 @@ test('failed note saves and expired sessions preserve the editor for retry', asy
   const email = await signup(page);
   await page.goto('/learning');
   await page.getByRole('button', { name: 'New note', exact: true }).click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('app-learning-editor');
   await dialog
-    .getByLabel('Note content', { exact: true })
+    .getByRole('textbox', { name: 'Note content', exact: true })
     .fill('Keep this unsaved note through a connection failure.');
   await page.route('**/api/workspace', async (route) => {
     if (route.request().method() === 'PUT')
@@ -202,7 +213,7 @@ test('failed note saves and expired sessions preserve the editor for retry', asy
   });
   await dialog.getByRole('button', { name: 'Save note', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('Connection interrupted');
-  await expect(dialog.getByLabel('Note content', { exact: true })).toHaveValue(
+  await expect(dialog.getByRole('textbox', { name: 'Note content', exact: true })).toContainText(
     'Keep this unsaved note through a connection failure.',
   );
   await page.unroute('**/api/workspace');
@@ -214,11 +225,12 @@ test('failed note saves and expired sessions preserve the editor for retry', asy
   await reauth.getByLabel('Password', { exact: true }).fill(password);
   await reauth.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(reauth).not.toBeVisible();
-  await expect(dialog.getByLabel('Note content', { exact: true })).toHaveValue(
+  await expect(dialog.getByRole('textbox', { name: 'Note content', exact: true })).toContainText(
     'Keep this unsaved note through a connection failure.',
   );
   await save(page, 'Save note');
   await page.reload();
+  await page.locator('.note-list-item').filter({ hasText: 'Keep this unsaved note' }).click();
   await expect(page.locator('app-markdown')).toContainText('Keep this unsaved note');
 });
 

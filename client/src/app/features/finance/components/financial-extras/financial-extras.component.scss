@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+.allocation-history {
+  margin-top: 24px;
+}
+.funding-history {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  width: 100%;
+  padding: 16px 0;
+  background: none;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.funding-history small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 5px;
+}
+.funding-parts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 32px;
+  gap: 10px;
+  align-items: center;
+}
+.funding-parts label {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .funding-parts > div {
+    grid-template-columns: minmax(0, 1fr) 36px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 14px;
+  }
+  .funding-parts label {
+    grid-column: 1;
+  }
+  .funding-parts .icon-button {
+    grid-column: 2;
+    grid-row: 1/3;
+  }
+  .life-stats strong {
+    font-size: 22px;
+  }
+}

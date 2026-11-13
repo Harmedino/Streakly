@@ -1,0 +1,126 @@
+<ng-template #body
+  ><form class="note-editor-form" (ngSubmit)="save()" #form="ngForm">
+    <div class="editor-topline">
+      <span class="eyebrow">{{ entry() ? 'EDIT NOTE' : 'A NEW DISCOVERY' }}</span>
+      <div class="quick-actions">
+        <button class="text-button" type="button" (click)="close.emit()">Cancel</button
+        ><button class="btn primary" [disabled]="!content.trim() || life.tracker.api.busy()">
+          {{ life.tracker.api.busy() ? 'Saving…' : 'Save note' }}
+        </button>
+      </div>
+    </div>
+    <label class="sr-only" for="note-title">Note title</label
+    ><input
+      class="note-title"
+      id="note-title"
+      name="title"
+      [(ngModel)]="title"
+      placeholder="Untitled note"
+      maxlength="200"
+      (ngModelChange)="draft()"
+    />
+    <app-rich-editor
+      name="content"
+      [(ngModel)]="content"
+      (ngModelChange)="draft()"
+      label="Note content"
+      placeholder="What did you learn? Start writing…"
+    />
+    <details>
+      <summary>More Options</summary>
+      <div class="form-grid">
+        <label>Category<input name="category" [(ngModel)]="category" maxlength="60" /></label
+        ><label
+          >Tags<input
+            name="tags"
+            [(ngModel)]="tags"
+            maxlength="500"
+            placeholder="design, coding" /></label
+        ><label
+          >Date<input
+            type="date"
+            name="date"
+            [(ngModel)]="date"
+            [max]="life.tracker.today()" /></label
+        ><label
+          >Time spent (minutes)<input
+            type="number"
+            name="minutes"
+            [(ngModel)]="minutes"
+            min="0"
+            max="1440"
+        /></label>
+      </div>
+      <label
+        >Related links<textarea
+          name="resources"
+          [(ngModel)]="resources"
+          rows="2"
+          maxlength="4000"
+        ></textarea></label
+      ><label
+        >Related streak<select aria-label="Related streak" name="activity" [(ngModel)]="activityId">
+          <option value="">No linked streak</option>
+          @for (a of life.tracker.active(); track a.id) {
+            @if (!a.automation && (a.quantityTarget === 1 || a.progressType === 'duration')) {
+              <option [value]="a.id">{{ a.name }}</option>
+            }
+          }
+        </select></label
+      >
+      <div class="form-grid">
+        <label
+          >Related goal<select
+            name="goal"
+            [(ngModel)]="goalId"
+            (ngModelChange)="milestoneId = ''"
+            aria-label="Related goal"
+          >
+            <option value="">No linked goal</option>
+            @for (g of life.data().goals; track g.id) {
+              <option [value]="g.id">{{ g.title }}</option>
+            }
+          </select></label
+        >
+        @if (goalId) {
+          <label
+            >Related milestone<select
+              aria-label="Related milestone"
+              name="milestone"
+              [(ngModel)]="milestoneId"
+            >
+              <option value="">No milestone</option>
+              @for (m of milestones(); track m.id) {
+                <option [value]="m.id">{{ m.title }}</option>
+              }
+            </select></label
+          >
+        }
+      </div>
+      <label
+        >Next steps<textarea
+          name="next"
+          [(ngModel)]="next"
+          rows="2"
+          maxlength="1000"
+        ></textarea></label
+      ><label class="checkbox-label"
+        ><input type="checkbox" name="pinned" [(ngModel)]="pinned" />Pin this note</label
+      >
+    </details>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <p class="helper" role="status">{{ draftState() }}</p>
+  </form></ng-template
+>
+@if (embedded()) {
+  <section class="embedded-note"><ng-container [ngTemplateOutlet]="body" /></section>
+} @else {
+  <app-dialog
+    [title]="entry() ? 'Edit learning note' : 'New learning note'"
+    (close)="close.emit()"
+    [fullScreen]="true"
+    ><ng-container [ngTemplateOutlet]="body"
+  /></app-dialog>
+}

@@ -1,0 +1,17 @@
+.account-access {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.panel {
+  width: 100%;
+  max-width: 460px;
+}
+h1 {
+  font-size: 28px;
+}
+.quick-actions {
+  margin: 16px 0 0;
+  justify-content: space-between;
+}

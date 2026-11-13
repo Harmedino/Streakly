@@ -1,0 +1,167 @@
+.rich-editor {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  min-width: 0;
+}
+.rich-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.rich-tools button {
+  min-width: 34px;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+.rich-tools button.active,
+.rich-tools button:hover {
+  background: var(--hover);
+  color: var(--accent);
+}
+.rich-tools button[aria-label='Bold'] {
+  font-weight: 800;
+}
+.rich-tools button[aria-label='Italic'] {
+  font-style: italic;
+}
+.rich-mount .tiptap {
+  min-height: 300px;
+  outline: 0;
+  padding: 24px;
+  font-size: 15px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+.rich-mount .tiptap:focus {
+  box-shadow: inset 0 -2px var(--accent);
+}
+.rich-mount .tiptap p {
+  margin: 0 0 12px;
+}
+.rich-mount .tiptap h1 {
+  font-size: 28px;
+  margin: 22px 0 12px;
+}
+.rich-mount .tiptap h2 {
+  font-size: 23px;
+  margin: 20px 0 12px;
+}
+.rich-mount .tiptap h3 {
+  font-size: 19px;
+  margin: 18px 0 10px;
+}
+.rich-mount .tiptap ul,
+.rich-mount .tiptap ol {
+  padding-left: 24px;
+}
+.rich-mount .tiptap blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 18px;
+  color: var(--muted);
+  margin-left: 0;
+}
+.rich-mount .tiptap pre {
+  background: var(--hover);
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+  max-width: 100%;
+  white-space: pre;
+}
+.rich-mount .tiptap code {
+  font-family: monospace;
+  background: var(--hover);
+  font-size: 0.9em;
+}
+.rich-mount .tiptap a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.rich-mount .tiptap ul[data-type='taskList'] {
+  list-style: none;
+  padding: 0;
+}
+.rich-mount .tiptap li[data-type='taskItem'] {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.rich-mount .tiptap li[data-type='taskItem'] > label {
+  flex: 0 0 auto;
+  margin: 0;
+  display: inline-flex;
+}
+.rich-mount .tiptap li[data-type='taskItem'] > div {
+  flex: 1;
+  min-width: 0;
+}
+.rich-mount .tiptap input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+.rich-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: var(--hover);
+}
+.rich-link label {
+  flex: 1;
+  min-width: 180px;
+  margin: 0;
+}
+.rich-mount .tiptap p.is-editor-empty:first-child::before {
+  color: var(--muted);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+@media (max-width: 600px) {
+  .rich-mount .tiptap {
+    padding: 16px;
+    min-height: 350px;
+  }
+  .rich-tools button {
+    min-height: 40px;
+  }
+  .rich-tools {
+    padding: 5px;
+    gap: 1px;
+  }
+}
+
+.rich-mount {
+  position: relative;
+}
+.rich-mount.is-empty::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  color: var(--muted);
+  font-size: 15px;
+  pointer-events: none;
+  line-height: 1.85;
+}
+@media (max-width: 600px) {
+  .rich-mount.is-empty::before {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+  }
+}

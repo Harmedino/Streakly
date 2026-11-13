@@ -1,0 +1,28 @@
+<div
+  class="modal-backdrop"
+  animate.enter="dialog-enter"
+  animate.leave="dialog-leave"
+  (click)="requestClose()"
+>
+  <section
+    #panel
+    class="modal"
+    [class.editor-modal]="fullScreen()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="title()"
+    tabindex="-1"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="modal-head">
+      <div>
+        <span class="eyebrow">A LITTLE INTENTION</span>
+        <h2>{{ title() }}</h2>
+      </div>
+      <button class="icon-button" aria-label="Close dialog" (click)="requestClose()">
+        <app-icon name="x" />
+      </button>
+    </div>
+    <ng-content />
+  </section>
+</div>

@@ -1,0 +1,29 @@
+<section class="feed">
+  <div class="section-heading">
+    <h2>{{ title() }}</h2>
+    <a class="text-button" [routerLink]="actionPath()"
+      >{{ actionLabel() }}<app-icon name="up" [size]="15"
+    /></a>
+  </div>
+  @for (item of items(); track item.id) {
+    <a class="feed-row" [routerLink]="item.path"
+      ><span class="feed-icon"><app-icon [name]="item.icon || 'calendar'" [size]="16" /></span>
+      <div>
+        <strong>{{ item.title }}</strong>
+        @if (item.label) {
+          <small>{{ item.label }}</small>
+        }
+      </div>
+      <time [class.overdue]="deadline() && item.date < today()"
+        >{{ deadline() && item.date < today() ? 'Overdue · ' : '' }}{{ pretty(item.date) }}</time
+      ><app-icon name="right" [size]="14"
+    /></a>
+  } @empty {
+    <div class="inline-empty">
+      <app-icon [name]="deadline() ? 'check' : 'sprout'" [size]="18" />
+      <p>
+        {{ emptyTitle() }}<span>{{ emptyDescription() }}</span>
+      </p>
+    </div>
+  }
+</section>

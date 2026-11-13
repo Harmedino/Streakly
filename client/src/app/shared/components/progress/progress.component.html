@@ -1,0 +1,10 @@
+<div
+  class="progress-track"
+  role="progressbar"
+  aria-label="Completion progress"
+  [attr.aria-valuenow]="value()"
+  aria-valuemin="0"
+  aria-valuemax="100"
+>
+  <span [style.width.%]="value()"></span>
+</div>

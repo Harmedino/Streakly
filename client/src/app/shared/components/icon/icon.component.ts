@@ -1,0 +1,58 @@
+import { Component, input } from '@angular/core';
+import {
+  LucideArrowRight,
+  LucideArrowUpRight,
+  LucideCalendarDays,
+  LucideChartNoAxesCombined,
+  LucideCheck,
+  LucideChevronLeft,
+  LucideChevronRight,
+  LucideDownload,
+  LucideEllipsis,
+  LucideFlame,
+  LucideLayoutDashboard,
+  LucideLeaf,
+  LucideMenu,
+  LucideMoon,
+  LucidePlus,
+  LucideSearch,
+  LucideSettings2,
+  LucideSprout,
+  LucideSun,
+  LucideTarget,
+  LucideUpload,
+  LucideX,
+} from '@lucide/angular';
+@Component({
+  selector: 'app-icon',
+  imports: [
+    LucideLayoutDashboard,
+    LucideCalendarDays,
+    LucideChartNoAxesCombined,
+    LucideSettings2,
+    LucideSprout,
+    LucidePlus,
+    LucideArrowUpRight,
+    LucideFlame,
+    LucideCheck,
+    LucideChevronLeft,
+    LucideChevronRight,
+    LucideSun,
+    LucideMoon,
+    LucideSearch,
+    LucideX,
+    LucideArrowRight,
+    LucideDownload,
+    LucideUpload,
+    LucideEllipsis,
+    LucideLeaf,
+    LucideTarget,
+    LucideMenu,
+  ],
+  templateUrl: './icon.component.html',
+  styleUrl: './icon.component.scss',
+})
+export class Icon {
+  name = input('sprout');
+  size = input(20);
+}

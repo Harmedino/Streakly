@@ -23,7 +23,7 @@ test('mark streak stays visible when completed or paused on mobile and desktop',
   ).toBeVisible();
   await page.getByRole('button', { name: 'Undo Code every day', exact: true }).click();
   await expect(mark).toBeEnabled();
-  await page.getByRole('link', { name: /Code every day/ }).click();
+  await page.locator('.activity-info').filter({ hasText: 'Code every day' }).click();
   await expect(
     page.getByRole('button', { name: 'Complete Code every day', exact: true }),
   ).toBeVisible();
