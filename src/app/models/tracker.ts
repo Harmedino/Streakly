@@ -1,3 +1,4 @@
+import { LifeData, emptyLife } from './life';
 export type Frequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'interval' | 'once';
 export type ProgressType = 'binary' | 'quantity' | 'duration' | 'amount';
 export interface Pause {
@@ -41,9 +42,13 @@ export interface Todo {
   dueDate: string;
   createdAt: string;
   updatedAt: string;
+  scheduledDate?: string;
+  priority?: 'low' | 'medium' | 'high';
+  completedOn?: string;
 }
 export interface AppData {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
+  life?: LifeData;
   revision?: number;
   todos?: Todo[];
   dailyNotes?: Record<string, string>;
@@ -64,7 +69,8 @@ export const COLORS = ['#57764b', '#8270b2', '#ce8053', '#568b9e', '#c8677c', '#
 export const EMOJIS = ['🌱', '💻', '📖', '🏃', '💧', '🧠', '🎨', '💰', '🧘', '🎸', '✍️', '🌍'];
 export function emptyData(): AppData {
   return {
-    version: 2,
+    version: 3,
+    life: emptyLife(),
     revision: 0,
     todos: [],
     dailyNotes: {},

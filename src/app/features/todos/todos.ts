@@ -16,6 +16,21 @@ export class Todos {
   tracker = inject(TrackerService);
   title = '';
   dueDate = '';
+  scheduledDate = this.tracker.today();
+  priority: 'low' | 'medium' | 'high' = 'medium';
+  scope = signal('all');
+  editScheduledDate = '';
+  editPriority: 'low' | 'medium' | 'high' = 'medium';
+  todayTasks = computed(() =>
+    this.tasks().filter((t) => (t.scheduledDate || t.dueDate) === this.tracker.today()),
+  );
+  dailyProgress = computed(() =>
+    this.todayTasks().length
+      ? Math.round(
+          (this.todayTasks().filter((t) => t.done).length / this.todayTasks().length) * 100,
+        )
+      : 0,
+  );
   error = '';
   filter = signal<'all' | 'pending' | 'done'>('pending');
   editing = signal<Todo | null>(null);
@@ -25,6 +40,7 @@ export class Todos {
   deleting = signal<Todo | null>(null);
   clearing = signal(false);
   pretty = prettyDate;
+  isDoneTask = (t: Todo) => t.done;
   tasks = computed(() => this.tracker.data().todos ?? []);
   done = computed(() => this.tasks().filter((t) => t.done).length);
   remaining = computed(() => this.tasks().length - this.done());
@@ -33,11 +49,22 @@ export class Todos {
   );
   list = computed(() =>
     this.tasks()
-      .filter((t) => this.filter() === 'all' || (this.filter() === 'done') === t.done)
+      .filter(
+        (t) =>
+          (this.filter() === 'all' || (this.filter() === 'done') === t.done) &&
+          (this.scope() === 'all' ||
+            (this.scope() === 'today' && (t.scheduledDate || t.dueDate) === this.tracker.today()) ||
+            (this.scope() === 'overdue' &&
+              !t.done &&
+              !!(t.dueDate || t.scheduledDate) &&
+              (t.dueDate || t.scheduledDate!) < this.tracker.today())),
+      )
       .slice()
       .sort(
         (a, b) =>
           Number(a.done) - Number(b.done) ||
+          { high: 0, medium: 1, low: 2 }[a.priority ?? 'medium'] -
+            { high: 0, medium: 1, low: 2 }[b.priority ?? 'medium'] ||
           (a.dueDate || '9999').localeCompare(b.dueDate || '9999') ||
           b.createdAt.localeCompare(a.createdAt),
       ),
@@ -52,7 +79,7 @@ export class Todos {
       this.error = 'Choose a valid due date.';
       return;
     }
-    if (this.tracker.addTodo(this.title, this.dueDate)) {
+    if (this.tracker.addTodo(this.title, this.dueDate, this.scheduledDate, this.priority)) {
       this.title = '';
       this.dueDate = '';
       this.filter.set('pending');
@@ -62,6 +89,8 @@ export class Todos {
     this.editing.set(structuredClone(todo));
     this.editTitle = todo.title;
     this.editDueDate = todo.dueDate;
+    this.editScheduledDate = todo.scheduledDate ?? '';
+    this.editPriority = todo.priority ?? 'medium';
     this.editError = '';
   }
   save() {
@@ -69,7 +98,15 @@ export class Todos {
       this.editError = 'Add a task name and a valid optional due date.';
       return;
     }
-    if (this.tracker.editTodo(this.editing()!, this.editTitle, this.editDueDate))
+    if (
+      this.tracker.editTodo(
+        this.editing()!,
+        this.editTitle,
+        this.editDueDate,
+        this.editScheduledDate,
+        this.editPriority,
+      )
+    )
       this.editing.set(null);
     else
       this.editError =

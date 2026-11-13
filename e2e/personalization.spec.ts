@@ -19,7 +19,7 @@ test('create, choose, persist and rename a personal category on mobile', async (
   await expect(dialog).not.toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Open navigation' }).click();
-  await nav.getByRole('link', { name: /My activities/ }).click();
+  await nav.getByRole('link', { name: /My Streaks/ }).click();
   await page.getByLabel('Filter category').selectOption('Creative time');
   await expect(page.getByRole('link', { name: /Make something meaningful/ })).toBeVisible();
   await page.getByRole('link', { name: 'Open personal settings' }).click();
@@ -30,7 +30,7 @@ test('create, choose, persist and rename a personal category on mobile', async (
     page.getByRole('button', { name: 'Rename category My creative space' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Open navigation' }).click();
-  await nav.getByRole('link', { name: /My activities/ }).click();
+  await nav.getByRole('link', { name: /My Streaks/ }).click();
   await page.getByLabel('Filter category').selectOption('My creative space');
   await expect(page.getByRole('link', { name: /Make something meaningful/ })).toContainText(
     'My creative space',

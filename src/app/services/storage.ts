@@ -1,7 +1,10 @@
+import { emptyLife } from '../models/life';
+import { validateLife } from '../core/life-validation';
 import { Injectable, signal } from '@angular/core';
 import { AppData, emptyData } from '../models/tracker';
 import { dateKey, validDate } from '../core/dates';
 export const STORAGE_KEY = 'streakly.data.v1';
+export const PRE_RESTORE_KEY = 'streakly.backup.before-restore';
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
@@ -10,8 +13,8 @@ export function validateData(raw: unknown): AppData {
   assert(raw && typeof raw === 'object', 'This file does not contain Streakly data.');
   const d = raw as AppData;
   assert(
-    d.version === 1 || d.version === 2,
-    'Unsupported backup version. Choose a Streakly version 1 or 2 backup.',
+    d.version === 1 || d.version === 2 || d.version === 3,
+    'Unsupported backup version. Choose a Streakly version 1, 2 or 3 backup.',
   );
   assert(
     d.preferences &&
@@ -68,6 +71,22 @@ export function validateData(raw: unknown): AppData {
         text(todo.updatedAt, 50) &&
         Number.isFinite(Date.parse(todo.updatedAt)),
       'Invalid or duplicate task.',
+    );
+    assert(
+      todo.scheduledDate === undefined ||
+        todo.scheduledDate === '' ||
+        validDate(todo.scheduledDate),
+      'Invalid scheduled task date.',
+    );
+    assert(
+      todo.priority === undefined || ['low', 'medium', 'high'].includes(todo.priority),
+      'Invalid task priority.',
+    );
+    assert(
+      todo.completedOn === undefined ||
+        todo.completedOn === '' ||
+        (validDate(todo.completedOn) && todo.completedOn <= dateKey()),
+      'Invalid task completion date.',
     );
     todoIds.add(todo.id);
   }
@@ -184,19 +203,43 @@ export function validateData(raw: unknown): AppData {
   const result = structuredClone(d);
   if (result.version === 1) {
     result.version = 2;
-    result.revision = 0;
-    result.dailyNotes = {};
-    result.reminderLog = [];
+    result.revision ??= 0;
+    result.dailyNotes ??= {};
+    result.reminderLog ??= [];
     result.activities = result.activities.map((a) => ({
       ...a,
-      progressType: a.quantityTarget > 1 ? 'quantity' : 'binary',
-      restDays: [],
-      freezes: [],
-      pauses: [],
-      pinned: false,
-      order: 0,
+      progressType: a.progressType ?? (a.quantityTarget > 1 ? 'quantity' : 'binary'),
+      restDays: a.restDays ?? [],
+      freezes: a.freezes ?? [],
+      pauses: a.pauses ?? [],
+      pinned: a.pinned ?? false,
+      order: a.order ?? 0,
     }));
   }
+  if (result.version === 3 && result.life === undefined)
+    throw new Error(
+      'Version 3 data is missing its life-management records. The original data was kept untouched.',
+    );
+  if (result.life === undefined) result.life = emptyLife();
+  validateLife(result.life, result.activities);
+  for (const credit of result.life.learningCredits) {
+    const activity = result.activities.find((a) => a.id === credit.activityId)!;
+    const entries = result.life.learning.filter(
+      (e) => e.activityId === credit.activityId && e.date === credit.date,
+    );
+    const quantity =
+      activity.progressType === 'duration'
+        ? credit.baseQuantity + entries.reduce((n, e) => n + e.minutes, 0)
+        : Math.max(credit.baseQuantity, 1);
+    const recorded = result.completions.find(
+      (e) => e.activityId === credit.activityId && e.date === credit.date,
+    );
+    assert(
+      recorded && recorded.quantity === quantity,
+      'Learning credit does not match its saved completion history.',
+    );
+  }
+  result.version = 3;
   return result;
 }
 export function migrateData(raw: unknown): AppData {
@@ -251,6 +294,13 @@ export class StorageService {
       return emptyData();
     }
   }
+  safetyBackup(): string | null {
+    try {
+      return localStorage.getItem(PRE_RESTORE_KEY);
+    } catch {
+      return null;
+    }
+  }
   save(data: AppData, replaceCorrupt = false): boolean {
     if (this.readFailed && !replaceCorrupt) return false;
     try {
@@ -261,6 +311,10 @@ export class StorageService {
         return false;
       }
       const raw = JSON.stringify(data);
+      if (replaceCorrupt) {
+        const current = localStorage.getItem(STORAGE_KEY);
+        if (current !== null) localStorage.setItem(PRE_RESTORE_KEY, current);
+      }
       localStorage.setItem(STORAGE_KEY, raw);
       this.baseline = raw;
       this.readFailed = false;
@@ -269,7 +323,7 @@ export class StorageService {
       return true;
     } catch {
       this.error.set(
-        'Browser storage is unavailable or full. This change was not saved. Export a backup or free up browser storage.',
+        'Browser storage is unavailable or full. This change was not saved. Replacement also requires room for a safety backup. Export a backup or free up browser storage.',
       );
       return false;
     }
@@ -284,7 +338,7 @@ export function recoverRecords(raw: string): {
   discardedTodos: number;
 } {
   const source = JSON.parse(raw) as Partial<AppData>;
-  if (!source || typeof source !== 'object' || ![1, 2].includes(source.version as number))
+  if (!source || typeof source !== 'object' || ![1, 2, 3].includes(source.version as number))
     throw new Error(
       'This data cannot be recovered automatically. Export the original file for safekeeping.',
     );
@@ -340,6 +394,17 @@ export function recoverRecords(raw: string): {
       data.todos!.push(todo);
     } catch {
       discardedTodos++;
+    }
+  }
+  // New module records are retained only as a validated unit; never guess financial references.
+  if (source.life) {
+    try {
+      validateLife(source.life, data.activities);
+      data.life = source.life;
+    } catch {
+      throw new Error(
+        'The life-management records need repair. Export the original backup; automatic recovery will not discard financial records.',
+      );
     }
   }
   return { data: validateData(data), discardedActivities, discardedCompletions, discardedTodos };

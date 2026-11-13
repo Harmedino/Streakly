@@ -13,6 +13,43 @@
     }}
   </div>
 </div>
+<div class="quick-actions">
+  <button class="btn primary" (click)="quick.set('income')">+ Income</button
+  ><button class="btn" (click)="quick.set('expense')">+ Expense</button
+  ><button class="btn" (click)="quick.set('learning')">+ Learning</button
+  ><button class="btn" (click)="quick.set('progress')">Mark daily progress</button
+  ><a class="text-button" routerLink="/reports">Life reports ↗</a>
+</div>
+<div class="life-stats dashboard-life-stats">
+  <div>
+    <span>Learning this week</span><strong>{{ learningHours() }} h</strong
+    ><small>From your learning journal</small>
+  </div>
+  <div>
+    <span>Applications this month</span><strong>{{ monthlyJobs() }}</strong
+    ><small>Submitted applications</small>
+  </div>
+  <div>
+    <span>Monthly income</span><strong>{{ cash(finance().income) }}</strong
+    ><small>Recorded receipts</small>
+  </div>
+  <div>
+    <span>Monthly expenses</span><strong>{{ cash(finance().expenses) }}</strong
+    ><small>Transfers excluded</small>
+  </div>
+  <div>
+    <span>Current savings</span><strong>{{ cash(finance().savings) }}</strong
+    ><small>Held and earmarked funds</small>
+  </div>
+  <div>
+    <span>Available balance</span><strong>{{ cash(finance().available) }}</strong
+    ><small>Tracked balances after reserves</small>
+  </div>
+  <div>
+    <span>Active goals</span><strong>{{ activeGoals() }}</strong
+    ><small>Intentions in progress</small>
+  </div>
+</div>
 <section class="today-banner">
   <div class="banner-copy">
     <span class="eyebrow">SHOW UP FOR YOURSELF</span>
@@ -149,6 +186,24 @@
     <app-daily-note [date]="tracker.today()" />
   </div>
   <aside class="dashboard-aside">
+    <section class="panel spaced-panel upcoming-list">
+      <span class="eyebrow">ON YOUR HORIZON</span>
+      <h2>Upcoming deadlines</h2>
+      @for (item of deadlines(); track item.id) {
+        <a class="record-row" [routerLink]="item.path"
+          ><div>
+            <strong>{{ item.title }}</strong
+            ><small
+              >{{ item.date }} · {{ item.date < tracker.today() ? 'Overdue' : 'Upcoming' }}</small
+            >
+          </div>
+          <app-icon name="right" [size]="16"
+        /></a>
+      } @empty {
+        <p class="helper">No pending deadlines. A little room to breathe.</p>
+      }
+    </section>
+
     <section class="panel calendar-panel">
       <div class="section-heading">
         <h2>Your consistency</h2>
@@ -175,4 +230,8 @@
 </div>
 @if (create()) {
   <app-activity-form (close)="create.set(false)" />
+}
+
+@if (quick(); as mode) {
+  <app-quick-entry [mode]="mode" (close)="quick.set(null)" />
 }

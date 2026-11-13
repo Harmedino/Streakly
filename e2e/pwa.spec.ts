@@ -24,17 +24,30 @@ test('production service worker reloads offline, including lazy routes and saved
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await page.getByRole('button', { name: 'Complete Code every day', exact: true }).click();
   await expect(page.getByText('1 of 1 completed', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: /My activities/ }).click();
+  await page.getByRole('link', { name: /My Streaks/ }).click();
   await expect(page.getByRole('link', { name: /Code every day/ })).toBeVisible();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(
     page.getByRole('button', { name: 'Undo Code every day', exact: true }),
   ).toBeVisible();
-  await page.getByRole('link', { name: 'To-do list', exact: true }).click();
+  await page.getByRole('link', { name: 'Daily Planner', exact: true }).click();
   await page.getByLabel('What needs doing?').fill('An offline little task');
   await page.getByRole('button', { name: 'Add task', exact: true }).click();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(
     page.getByRole('heading', { name: 'An offline little task', exact: true }),
   ).toBeVisible();
+  await page.goto('/finance');
+  await page.getByRole('button', { name: 'Record income', exact: true }).click();
+  const income = page.getByRole('dialog');
+  await income.getByLabel('Amount (₦)', { exact: true }).fill('10.50');
+  await income.getByLabel('Income source', { exact: true }).fill('Offline receipt');
+  await income.getByRole('button', { name: 'Save record', exact: true }).click();
+  await expect(income).not.toBeVisible();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(
+    page.locator('.finance-stats>div').filter({ hasText: 'Total income' }),
+  ).toContainText('10.50');
+  await page.goto('/learning');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Learning journal');
 });

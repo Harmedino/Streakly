@@ -1,5 +1,7 @@
+import { syncLearning } from '../core/learning';
+import { emptyLife } from '../models/life';
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { Activity, AppData, Todo } from '../models/tracker';
+import { Activity, AppData, Todo, emptyData } from '../models/tracker';
 import { StorageService, validateData } from './storage';
 import { addDays, dateKey, validDate } from '../core/dates';
 import {
@@ -124,6 +126,15 @@ export class TrackerService {
     return saved;
   }
   saveActivity(a: Activity): boolean {
+    if (
+      this.data().life?.learning.some((e) => e.activityId === a.id) &&
+      (a.frequency === 'once' || (a.progressType !== 'duration' && a.quantityTarget !== 1))
+    ) {
+      this.notify(
+        'Unlink learning entries before changing this streak to an incompatible progress type.',
+      );
+      return false;
+    }
     const existing = this.data().categories.find(
       (c) => c.toLocaleLowerCase() === a.category.trim().toLocaleLowerCase(),
     );
@@ -139,6 +150,15 @@ export class TrackerService {
         d.activities.push(a);
       } else d.activities[i] = a;
       if (!d.categories.includes(a.category)) d.categories.push(a.category);
+      const linked = d.life?.learningCredits.filter((c) => c.activityId === a.id) ?? [];
+      if (linked.length) {
+        if (a.progressType !== 'duration')
+          for (const credit of linked) credit.baseQuantity = Number(credit.baseQuantity > 0);
+        syncLearning(
+          d,
+          linked.map((c) => ({ activityId: c.activityId, date: c.date })),
+        );
+      }
     });
     if (saved) this.notify('Activity saved. A little commitment goes a long way.');
     return saved;
@@ -174,6 +194,19 @@ export class TrackerService {
     const before = this.stats(a).current;
     if (
       !this.update((d) => {
+        const credit = d.life?.learningCredits.find(
+          (c) => c.activityId === a.id && c.date === date,
+        );
+        if (credit) {
+          const learning = d.life!.learning.filter((e) => e.activityId === a.id && e.date === date);
+          const added =
+            a.progressType === 'duration'
+              ? learning.reduce((n, e) => n + e.minutes, 0)
+              : Number(learning.length > 0);
+          credit.baseQuantity = Math.max(0, quantity - added);
+          credit.baseNote = note;
+          quantity = Math.max(quantity, added);
+        }
         d.completions = d.completions.filter((e) => !(e.activityId === a.id && e.date === date));
         if (quantity > 0) d.completions.push({ activityId: a.id, date, quantity, note });
         const item = d.activities.find((x) => x.id === a.id);
@@ -221,6 +254,11 @@ export class TrackerService {
   }
   delete(a: Activity) {
     const saved = this.update((d) => {
+      if (d.life) {
+        for (const entry of d.life.learning) if (entry.activityId === a.id) entry.activityId = '';
+        for (const goal of d.life.goals) if (goal.activityId === a.id) goal.activityId = '';
+        d.life.learningCredits = d.life.learningCredits.filter((c) => c.activityId !== a.id);
+      }
       d.activities = d.activities.filter((x) => x.id !== a.id);
       d.completions = d.completions.filter((x) => x.activityId !== a.id);
       d.milestones = d.milestones.filter((x) => !x.startsWith(a.id + ':'));
@@ -305,9 +343,20 @@ export class TrackerService {
         d.activities.find((x) => x.id === item.id)!.order = order;
     });
   }
-  addTodo(title: string, dueDate = ''): boolean {
+  addTodo(
+    title: string,
+    dueDate = '',
+    scheduledDate = '',
+    priority: 'low' | 'medium' | 'high' = 'medium',
+  ): boolean {
     title = title.trim();
-    if (!title || title.length > 200 || (dueDate && !validDate(dueDate))) return false;
+    if (
+      !title ||
+      title.length > 200 ||
+      (dueDate && !validDate(dueDate)) ||
+      (scheduledDate && !validDate(scheduledDate))
+    )
+      return false;
     const now = new Date().toISOString();
     const saved = this.update((d) => {
       d.todos ??= [];
@@ -315,6 +364,8 @@ export class TrackerService {
         id: crypto.randomUUID(),
         title,
         dueDate,
+        scheduledDate,
+        priority,
         done: false,
         createdAt: now,
         updatedAt: now,
@@ -323,9 +374,22 @@ export class TrackerService {
     if (saved) this.notify('Added to your list. One less thing to remember.');
     return saved;
   }
-  editTodo(original: Todo, title: string, dueDate = ''): boolean {
+  editTodo(
+    original: Todo,
+    title: string,
+    dueDate = '',
+    scheduledDate = original.scheduledDate ?? '',
+    priority = original.priority ?? 'medium',
+  ): boolean {
     title = title.trim();
-    if (!title || title.length > 200 || (dueDate && !validDate(dueDate))) return false;
+    if (
+      !title ||
+      title.length > 200 ||
+      (dueDate && !validDate(dueDate)) ||
+      (scheduledDate && !validDate(scheduledDate)) ||
+      !['low', 'medium', 'high'].includes(priority)
+    )
+      return false;
     const latest = this.data().todos?.find((t) => t.id === original.id);
     if (!latest || JSON.stringify(latest) !== JSON.stringify(original)) {
       this.notify('This task changed in another tab. Reopen it before editing.');
@@ -335,6 +399,8 @@ export class TrackerService {
       const todo = d.todos!.find((t) => t.id === original.id)!;
       todo.title = title;
       todo.dueDate = dueDate;
+      todo.scheduledDate = scheduledDate;
+      todo.priority = priority;
       todo.updatedAt = new Date().toISOString();
     });
   }
@@ -343,6 +409,7 @@ export class TrackerService {
     return this.update((d) => {
       const todo = d.todos!.find((t) => t.id === id)!;
       todo.done = !todo.done;
+      todo.completedOn = todo.done ? dateKey() : '';
       todo.updatedAt = new Date().toISOString();
     });
   }
@@ -362,6 +429,47 @@ export class TrackerService {
         else delete d.dailyNotes[date];
       });
     return false;
+  }
+  resetSection(section: string): boolean {
+    const d = structuredClone(this.data());
+    d.life ??= emptyLife();
+    const life = d.life;
+    if (section === 'all') {
+      return this.import(emptyData());
+    }
+    if (section === 'finance') {
+      const fresh = emptyLife();
+      life.accounts = [];
+      life.transactions = [];
+      life.recurring = [];
+      life.budgets = [];
+      life.savingsGoals = [];
+      life.contributions = [];
+      life.incomeCategories = fresh.incomeCategories;
+      life.expenseCategories = fresh.expenseCategories;
+      for (const g of life.goals) g.savingsId = '';
+    } else if (section === 'learning') {
+      const pairs = life.learningCredits.map((c) => ({ activityId: c.activityId, date: c.date }));
+      life.learning = [];
+      syncLearning(d, pairs);
+      for (const g of life.goals) g.learningCategory = '';
+    } else if (section === 'jobs') life.jobs = [];
+    else if (section === 'goals') {
+      life.goals = [];
+      life.goalEvents = [];
+    } else if (section === 'journal') {
+      life.journal = [];
+      d.dailyNotes = {};
+    } else if (section === 'planner') d.todos = [];
+    else if (section === 'streaks') {
+      d.activities = [];
+      d.completions = [];
+      d.milestones = [];
+      life.learningCredits = [];
+      for (const e of life.learning) e.activityId = '';
+      for (const g of life.goals) g.activityId = '';
+    } else if (section !== 'finance') return false;
+    return this.import(d);
   }
   import(raw: unknown) {
     const data = validateData(raw);

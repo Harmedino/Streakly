@@ -7,8 +7,8 @@ test('mobile to-do list supports creation, edits, completion, undo, persistence 
   await page.goto('/');
   await page.getByRole('button', { name: "I'll explore first" }).click();
   await page.getByRole('button', { name: 'Open navigation' }).click();
-  await page.getByRole('link', { name: 'To-do list', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Your to-do list');
+  await page.getByRole('link', { name: 'Daily Planner', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Daily planner');
   await page.getByLabel('What needs doing?').fill('Book an appointment');
   await page.getByLabel('Due date optional').fill('2027-01-01');
   await page.getByRole('button', { name: 'Add task', exact: true }).click();

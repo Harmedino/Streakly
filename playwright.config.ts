@@ -6,7 +6,7 @@ export default defineConfig({
   workers: 1,
   timeout: 30000,
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL: process.env['STREAKLY_TEST_URL'] || 'http://localhost:4200',
     headless: true,
     timezoneId: 'Europe/London',
     launchOptions: {

@@ -1,0 +1,524 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">MONEY, WITH INTENTION</span>
+    <h1>Your finances<span class="greeting-dot">.</span></h1>
+    <p>Know what comes in, what goes out, and what is truly available.</p>
+  </div>
+  <label class="month-picker"
+    >Selected month<input
+      type="month"
+      aria-label="Finance month"
+      [ngModel]="month()"
+      (ngModelChange)="changeMonth($event)"
+  /></label>
+</div>
+<div class="module-tabs" aria-label="Finance sections">
+  @for (name of tabs; track name) {
+    <button
+      [class.active]="tab() === name"
+      (click)="tab.set(name); category.set(''); from.set(''); to.set('')"
+    >
+      {{ name }}
+    </button>
+  }
+</div>
+@if (life.error() && !editor()) {
+  <p class="error" role="alert">{{ life.error() }}</p>
+}
+<div class="quick-actions">
+  <button class="btn primary" (click)="open('income')">
+    <app-icon name="plus" [size]="16" />Record income</button
+  ><button class="btn" (click)="open('expense')">Record expense</button
+  ><button class="btn" (click)="open('transfer')" [disabled]="life.data().accounts.length < 2">
+    Transfer between accounts</button
+  ><button class="text-button" (click)="export()">
+    <app-icon name="download" [size]="16" />Export CSV
+  </button>
+</div>
+<div class="life-stats finance-stats">
+  <div>
+    <span>Total income</span><strong>{{ cash(totals().income) }}</strong
+    ><small>{{ month() }}</small>
+  </div>
+  <div>
+    <span>Total expenses</span><strong>{{ cash(totals().expenses) }}</strong
+    ><small>Transfers excluded</small>
+  </div>
+  <div>
+    <span>Net cash flow</span><strong>{{ cash(totals().net) }}</strong
+    ><small>Income minus expenses</small>
+  </div>
+  <div>
+    <span>Available balance</span><strong>{{ cash(totals().available) }}</strong
+    ><small>Tracked spendable accounts minus reserved savings</small>
+  </div>
+  <div>
+    <span>Total savings</span><strong>{{ cash(totals().savings) }}</strong
+    ><small>Savings accounts + earmarked spendable funds</small>
+  </div>
+  <div>
+    <span>Monthly budget remaining</span
+    ><strong>{{ overall() ? cash(overall()!.amount - totals().expenses) : 'Not set' }}</strong
+    ><small>Balances as of {{ pretty(end()) }}</small>
+  </div>
+</div>
+@if (totals().unassigned) {
+  <p class="notice">
+    {{ totals().unassigned }} income/expense records have no payment account. They appear in cash
+    flow, but do not change tracked account balances.
+  </p>
+}
+@if (tab() === 'Overview' || tab() === 'Reports') {
+  @if (!life.data().accounts.length) {
+    <section class="panel">
+      <app-empty
+        title="Start with what you already have."
+        description="Add an account and its actual opening balance. Income minus expenses alone cannot tell us your available money."
+        action="Add an account"
+        (activate)="open('account')"
+      />
+    </section>
+  }
+  <div class="life-columns">
+    <section class="panel spaced-panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">YOUR MONEY OVER TIME</span>
+          <h2>Income & expenses</h2>
+        </div>
+        <span class="muted small">Last six months</span>
+      </div>
+      <div class="money-chart">
+        @for (m of trend(); track m.month) {
+          <div>
+            <div class="money-chart-bars">
+              <span
+                class="income-bar"
+                [style.height.%]="(m.income / chartMax()) * 100"
+                [attr.title]="m.month + ' income ' + cash(m.income)"
+              ></span
+              ><span
+                class="expense-bar"
+                [style.height.%]="(m.expenses / chartMax()) * 100"
+                [attr.title]="m.month + ' expenses ' + cash(m.expenses)"
+              ></span>
+            </div>
+            <small>{{ m.month.slice(5) }}</small
+            ><span class="sr-only"
+              >{{ m.month }}: income {{ cash(m.income) }}, expenses {{ cash(m.expenses) }}</span
+            >
+          </div>
+        }
+      </div>
+      <div class="chart-caption"><span>● Income</span><span>○ Expenses</span></div>
+    </section>
+    <section class="panel spaced-panel">
+      <span class="eyebrow">A LITTLE PERSPECTIVE</span>
+      <h2>This month vs last month</h2>
+      <dl class="schedule-list">
+        <div>
+          <dt>Previous income</dt>
+          <dd>{{ cash(previous().income) }}</dd>
+        </div>
+        <div>
+          <dt>Income change</dt>
+          <dd>{{ cash(totals().income - previous().income) }}</dd>
+        </div>
+        <div>
+          <dt>Previous expenses</dt>
+          <dd>{{ cash(previous().expenses) }}</dd>
+        </div>
+        <div>
+          <dt>Expense change</dt>
+          <dd>{{ cash(totals().expenses - previous().expenses) }}</dd>
+        </div>
+        <div>
+          <dt>Net savings contributions</dt>
+          <dd>{{ cash(totals().savedInPeriod) }}</dd>
+        </div>
+        <div>
+          <dt>Recurring expenses recorded</dt>
+          <dd>{{ cash(sum(monthRecords().filter(isRecurringExpense).map(transactionAmount))) }}</dd>
+        </div>
+      </dl>
+      <p class="helper">
+        Comparison uses recorded calendar-month totals, not forecasts. This month may still be in
+        progress.
+      </p>
+    </section>
+  </div>
+  <div class="life-columns">
+    <section class="panel spaced-panel">
+      <h2>Where your money went</h2>
+      @for (group of expenses(); track group.name) {
+        <div class="distribution-row">
+          <div>
+            <span>{{ group.name }}</span
+            ><strong>{{ cash(group.amount) }}</strong>
+          </div>
+          <app-progress [value]="percent(group.amount, totals().expenses)" />
+        </div>
+      } @empty {
+        <p class="helper">No spending recorded for this month.</p>
+      }
+    </section>
+    <section class="panel spaced-panel">
+      <h2>Your income sources</h2>
+      @for (group of sources(); track group.name) {
+        <div class="distribution-row">
+          <div>
+            <span>{{ group.name }}</span
+            ><strong>{{ cash(group.amount) }}</strong>
+          </div>
+          <app-progress [value]="percent(group.amount, totals().income)" />
+        </div>
+      } @empty {
+        <p class="helper">Your next recorded income will appear here.</p>
+      }
+    </section>
+  </div>
+  <section class="panel spaced-panel">
+    <h2>Highest expenses this month</h2>
+    @for (t of highest(); track t.id) {
+      <div class="record-row">
+        <div>
+          <strong>{{ t.description || t.category }}</strong
+          ><small>{{ t.category }} · {{ pretty(t.date) }}</small>
+        </div>
+        <strong>{{ cash(t.amount) }}</strong>
+      </div>
+    } @empty {
+      <p class="helper">Nothing recorded yet.</p>
+    }
+  </section>
+  <section class="panel spaced-panel">
+    <h2>Recent transactions</h2>
+    @for (t of recent(); track t.id) {
+      <div class="record-row">
+        <div>
+          <strong>{{ t.source || t.category }}</strong
+          ><small>{{ t.kind }} · {{ pretty(t.date) }} · {{ accountName(t.accountId) }}</small>
+        </div>
+        <strong>{{ cash(t.amount) }}</strong
+        ><button
+          class="text-button"
+          [attr.aria-label]="'Edit transaction ' + t.id"
+          (click)="open(t.kind, t)"
+        >
+          Edit</button
+        ><button
+          class="text-button destructive"
+          [attr.aria-label]="'Delete transaction ' + t.id"
+          (click)="ask('transactions', t.id, t.source || t.category)"
+        >
+          Delete
+        </button>
+      </div>
+    } @empty {
+      <p class="helper">Record your first income, expense or transfer above.</p>
+    }
+  </section>
+}
+@if (tab() === 'Income' || tab() === 'Expenses') {
+  <div class="life-stats">
+    @for (period of periodTotals(); track period.label) {
+      <div>
+        <span>{{ period.label }}</span
+        ><strong>{{ cash(tab() === 'Income' ? period.income : period.expenses) }}</strong
+        ><small>Actual recorded {{ tab().toLowerCase() }}</small>
+      </div>
+    }
+  </div>
+  <div class="toolbar">
+    <div class="search-input">
+      <app-icon name="search" [size]="17" /><input
+        aria-label="Search transactions"
+        placeholder="Search source, category or notes…"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+    <select
+      aria-label="Transaction category filter"
+      [ngModel]="category()"
+      (ngModelChange)="category.set($event)"
+    >
+      <option value="">All categories</option>
+      @for (
+        c of tab() === 'Income' ? life.data().incomeCategories : life.data().expenseCategories;
+        track c
+      ) {
+        <option>{{ c }}</option>
+      }</select
+    ><input
+      type="date"
+      aria-label="Transactions from date"
+      [ngModel]="from()"
+      (ngModelChange)="from.set($event)"
+    /><input
+      type="date"
+      aria-label="Transactions through date"
+      [ngModel]="to()"
+      (ngModelChange)="to.set($event)"
+    />
+  </div>
+  <section class="panel table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Source / description</th>
+          <th>Category</th>
+          <th>Account</th>
+          <th>Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (t of records(); track t.id) {
+          <tr>
+            <td>{{ t.date }}</td>
+            <td>
+              {{ t.source || t.description || '—' }}<small>{{ t.description }}</small>
+            </td>
+            <td>{{ t.category }}</td>
+            <td>{{ accountName(t.accountId) }}</td>
+            <td>{{ cash(t.amount) }}</td>
+            <td class="table-actions">
+              <button class="text-button" (click)="open(t.kind, t)">Edit</button
+              ><button
+                class="text-button destructive"
+                (click)="ask('transactions', t.id, t.source || t.category)"
+              >
+                Delete
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6">No matching records. Add your first transaction above.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+  <section class="panel spaced-panel">
+    <div class="section-heading">
+      <h2>Monthly {{ tab().toLowerCase() }} schedules</h2>
+      <button class="text-button" (click)="open('recurring')">Add schedule</button>
+    </div>
+    <p class="helper">
+      Schedules are reminders to review actual receipts or payments. They never fabricate income or
+      expenses automatically.
+    </p>
+    @for (r of schedules(); track r.id) {
+      <div class="record-row">
+        <div>
+          <strong>{{ r.source || r.category }}</strong
+          ><small
+            >{{ cash(r.amount) }} monthly · {{ r.active ? 'Active' : 'Paused' }} · starts
+            {{ r.startDate }}</small
+          >
+        </div>
+        <button class="text-button" (click)="open('recurring', r)">Edit</button
+        ><button class="text-button" (click)="toggleSchedule(r)">
+          {{ r.active ? 'Pause' : 'Resume' }}
+        </button>
+      </div>
+    } @empty {
+      <p class="helper">No monthly schedules yet.</p>
+    }
+    <button class="btn" [disabled]="!due().length" (click)="posting.set(true)">
+      Review {{ due().length }} due recurring records
+    </button>
+  </section>
+}
+@if (tab() === 'Accounts') {
+  <div class="section-heading module-heading">
+    <div>
+      <h2>Where your money lives</h2>
+      <p>Opening balances + recorded movements. Reserved money stays in its actual account.</p>
+    </div>
+    <button class="btn primary" (click)="open('account')">Add account</button>
+  </div>
+  <div class="module-grid">
+    @for (a of life.data().accounts; track a.id) {
+      <section class="panel spaced-panel">
+        <span class="eyebrow">{{ a.type }}</span>
+        <h2>{{ a.name }}</h2>
+        <strong class="large-value">{{ cash(balance(a)) }}</strong>
+        <p class="helper">
+          Opening {{ cash(a.openingBalance) }} on {{ a.openingDate }} · reserved {{ cash(held(a)) }}
+        </p>
+        <div class="quick-actions">
+          <button class="text-button" (click)="open('account', a)">Edit account</button
+          ><button class="text-button destructive" (click)="ask('accounts', a.id, a.name)">
+            Delete account
+          </button>
+        </div>
+      </section>
+    } @empty {
+      <app-empty
+        title="Give your money a home."
+        description="Create a bank, cash, wallet or savings account with its real opening balance."
+      />
+    }
+  </div>
+  <section class="panel spaced-panel">
+    <h2>Transfer history</h2>
+    @for (t of monthRecords().filter(isTransfer); track t.id) {
+      <div class="record-row">
+        <div>
+          <strong>{{ accountName(t.accountId) }} → {{ accountName(t.toAccountId) }}</strong
+          ><small>{{ t.date }} · {{ t.description }}</small>
+        </div>
+        <strong>{{ cash(t.amount) }}</strong
+        ><button class="text-button" (click)="open('transfer', t)">Edit</button
+        ><button class="text-button destructive" (click)="ask('transactions', t.id, 'Transfer')">
+          Delete
+        </button>
+      </div>
+    } @empty {
+      <p class="helper">Own-account transfers appear here and never count as income or expenses.</p>
+    }
+  </section>
+}
+@if (tab() === 'Budgets') {
+  <div class="section-heading module-heading">
+    <div>
+      <h2>A plan for your month</h2>
+      <p>Use a blank category for your overall budget, or set individual category limits.</p>
+    </div>
+    <button class="btn primary" (click)="open('budget')">Add budget</button>
+  </div>
+  <div class="module-grid">
+    @for (b of budgets(); track b.id) {
+      <section class="panel spaced-panel">
+        <h2>{{ b.category || 'Overall monthly budget' }}</h2>
+        <strong class="large-value">{{ cash(b.amount - used(b)) }}</strong>
+        <p class="helper">
+          {{ cash(used(b)) }} of {{ cash(b.amount) }} used ·
+          {{ Math.round((used(b) / b.amount) * 100) }}%
+        </p>
+        <app-progress [value]="percent(used(b), b.amount)" />
+        @if (used(b) > b.amount) {
+          <p class="error">Budget exceeded by {{ cash(used(b) - b.amount) }}.</p>
+        } @else if (used(b) >= b.amount * 0.8) {
+          <p class="notice">Approaching your limit.</p>
+        }
+        <div class="quick-actions">
+          <button class="text-button" (click)="open('budget', b)">Edit budget</button
+          ><button
+            class="text-button destructive"
+            (click)="ask('budgets', b.id, b.category || 'Overall budget')"
+          >
+            Delete budget
+          </button>
+        </div>
+      </section>
+    } @empty {
+      <app-empty
+        title="A little intention goes a long way."
+        description="Choose any month, including a future month, and set an overall or category budget."
+      />
+    }
+  </div>
+}
+@if (tab() === 'Savings') {
+  <div class="section-heading module-heading">
+    <div>
+      <h2>Make room for what matters</h2>
+      <p>
+        Contributions earmark money you already hold. Withdrawals release it; neither counts as
+        spending or income.
+      </p>
+    </div>
+    <button class="btn primary" (click)="open('savings')">Add savings goal</button>
+  </div>
+  <div class="module-grid">
+    @for (g of life.data().savingsGoals; track g.id) {
+      <section class="panel spaced-panel">
+        <h2>{{ g.name }}</h2>
+        <strong class="large-value">{{ cash(saved(g.id)) }}</strong>
+        <p class="helper">
+          of {{ cash(g.target) }} · target {{ g.deadline }} · {{ percent(saved(g.id), g.target) }}%
+        </p>
+        <app-progress [value]="percent(saved(g.id), g.target)" />
+        <div class="quick-actions">
+          <button
+            class="btn"
+            [disabled]="!life.data().accounts.length"
+            (click)="open('contribution', undefined, g.id)"
+          >
+            Add / withdraw</button
+          ><button class="text-button" (click)="open('savings', g)">Edit goal</button
+          ><button class="text-button destructive" (click)="ask('savingsGoals', g.id, g.name)">
+            Delete goal
+          </button>
+        </div>
+        <details>
+          <summary>Contribution history</summary>
+          @for (c of life.data().contributions; track c.id) {
+            @if (c.goalId === g.id) {
+              <div class="record-row">
+                <div>
+                  <strong>{{ cash(c.amount) }}</strong
+                  ><small>{{ c.date }} · {{ accountName(c.accountId) }} · {{ c.note }}</small>
+                </div>
+                <button class="text-button" (click)="open('contribution', c)">Edit</button
+                ><button
+                  class="text-button destructive"
+                  (click)="ask('contributions', c.id, 'Savings contribution')"
+                >
+                  Delete
+                </button>
+              </div>
+            }
+          }
+        </details>
+      </section>
+    } @empty {
+      <app-empty
+        title="Give your savings a purpose."
+        description="An emergency fund, a new laptop, a little breathing room. Start with a goal."
+      />
+    }
+  </div>
+}
+@if (editor(); as e) {
+  <app-entry-form
+    [title]="e.title"
+    [fields]="e.fields"
+    [initial]="e.values"
+    [error]="life.error()"
+    (save)="save($event)"
+    (close)="editor.set(null)"
+  />
+}
+@if (deleting(); as d) {
+  <app-confirm
+    title="Delete this record?"
+    [message]="
+      'Remove ' +
+      d.title +
+      '? Financial balances will be recalculated. Records with dependent history must be reassigned or removed first.'
+    "
+    label="Delete record"
+    (cancel)="deleting.set(null)"
+    (confirm)="remove()"
+  />
+}
+@if (posting()) {
+  <app-confirm
+    title="Record due recurring payments?"
+    [message]="
+      'Confirm these ' +
+      due().length +
+      ' due monthly records actually happened. They will be added once: ' +
+      dueDescription()
+    "
+    label="Record confirmed payments"
+    (cancel)="posting.set(false)"
+    (confirm)="post()"
+  />
+}

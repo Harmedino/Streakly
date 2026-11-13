@@ -1,7 +1,7 @@
 <div class="page-heading">
   <div>
     <span class="eyebrow">A LITTLE LESS ON YOUR MIND</span>
-    <h1>Your to-do list<span class="greeting-dot">.</span></h1>
+    <h1>Daily planner<span class="greeting-dot">.</span></h1>
     <p>A place for the little things you want to get done.</p>
   </div>
   <span class="pill">{{ remaining() }} {{ remaining() === 1 ? 'task' : 'tasks' }} to go</span>
@@ -23,6 +23,14 @@
         [(ngModel)]="dueDate"
         min="1900-01-01"
         max="2200-12-31" /></label
+    ><label class="task-date"
+      >Scheduled day<input type="date" name="scheduledDate" [(ngModel)]="scheduledDate" /></label
+    ><label class="task-date"
+      >Priority<select name="priority" [(ngModel)]="priority">
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select></label
     ><button class="btn primary" type="submit" [disabled]="form.invalid || !title.trim()">
       <app-icon name="plus" [size]="17" />Add task
     </button>
@@ -31,6 +39,23 @@
     <p class="error" role="alert">{{ error }}</p>
   }
 </section>
+<div class="planner-scope">
+  <label
+    >Show tasks<select
+      aria-label="Planner date filter"
+      [ngModel]="scope()"
+      (ngModelChange)="scope.set($event)"
+    >
+      <option value="all">All dates</option>
+      <option value="today">Today</option>
+      <option value="overdue">Missed / overdue</option>
+    </select></label
+  >
+  <p class="helper">
+    Today: {{ todayTasks().filter(isDoneTask).length }} of {{ todayTasks().length }} complete ·
+    {{ dailyProgress() }}%
+  </p>
+</div>
 <section class="panel todo-list">
   <div class="todo-summary">
     <div>
@@ -72,6 +97,18 @@
               min="1900-01-01"
               max="2200-12-31"
           /></label>
+          <label
+            >Reschedule task<input
+              type="date"
+              name="editSchedule"
+              [(ngModel)]="editScheduledDate" /></label
+          ><label
+            >Task priority<select name="editPriority" [(ngModel)]="editPriority">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select></label
+          >
           <div class="todo-edit-actions">
             <button class="btn" type="button" (click)="editing.set(null)">Cancel</button
             ><button class="btn primary" [disabled]="editForm.invalid || !editTitle.trim()">
@@ -94,6 +131,10 @@
         </button>
         <div class="todo-text">
           <h3>{{ task.title }}</h3>
+          <span class="status-pill">{{ task.priority || 'medium' }} priority</span>
+          @if (task.scheduledDate) {
+            <small class="helper">Planned {{ task.scheduledDate }}</small>
+          }
           @if (task.dueDate) {
             <span class="todo-due" [class.overdue]="!task.done && task.dueDate < tracker.today()"
               ><app-icon name="calendar" [size]="13" />{{

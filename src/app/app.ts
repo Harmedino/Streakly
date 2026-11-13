@@ -22,6 +22,17 @@ import { ActivityForm } from './shared/activity-form';
   styleUrl: './app.scss',
 })
 export class App {
+  navigation = [
+    { path: '/', label: 'Overview', icon: 'dashboard' },
+    { path: '/activities', label: 'My Streaks', icon: 'flame' },
+    { path: '/planner', label: 'Daily Planner', icon: 'check' },
+    { path: '/learning', label: 'Learning Journal', icon: 'sprout' },
+    { path: '/jobs', label: 'Job Applications', icon: 'target' },
+    { path: '/finance', label: 'Finance', icon: 'chart' },
+    { path: '/goals', label: 'Goals', icon: 'target' },
+    { path: '/journal', label: 'Personal Journal', icon: 'leaf' },
+    { path: '/reports', label: 'Reports', icon: 'chart' },
+  ];
   tracker = inject(TrackerService);
   todoCount = computed(() => this.tracker.data().todos?.filter((t) => !t.done).length ?? 0);
   pwa = inject(PwaService);

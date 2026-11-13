@@ -81,14 +81,14 @@ test('historical progress, actual insights, backup validation and theme persiste
   await page.getByRole('button', { name: 'Edit activity' }).click();
   await page.getByLabel('Start date').fill(past.key);
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await page.getByRole('link', { name: 'Calendar', exact: true }).click();
+  await page.goto('/calendar');
   if (past.differentMonth) await page.getByRole('button', { name: 'Previous month' }).click();
   await page.getByRole('button', { name: new RegExp('^' + past.label + ':') }).click();
   await page.getByRole('button', { name: 'Edit Read a little on selected date' }).click();
   await page.getByLabel('A note for yourself').fill('A good little day.');
   await page.getByRole('button', { name: 'Save progress' }).click();
   await expect(page.getByText('A good little day.', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Insights', exact: true }).click();
+  await page.goto('/statistics');
   await expect(page.locator('.detail-stats>div').nth(2)).toContainText('2');
   await page.screenshot({ path: '/tmp/streakly-insights.png', fullPage: true });
   await page.goto('/');

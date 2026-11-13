@@ -6,6 +6,7 @@ import { TrackerService } from '../../services/tracker';
 import { recoverRecords, validateData } from '../../services/storage';
 import { AppData } from '../../models/tracker';
 import { dateKey } from '../../core/dates';
+import { downloadFile } from '../../shared/download';
 import { Icon } from '../../shared/icon';
 import { ConfirmDialog } from '../../shared/dialog';
 @Component({
@@ -96,6 +97,31 @@ import { ConfirmDialog } from '../../shared/dialog';
             /><button class="btn" [disabled]="!category.trim()">Add category</button>
           </form>
         </section>
+        <section class="panel settings-section">
+          <span class="eyebrow">A CONSIDERED FRESH START</span>
+          <h2>Reset a section</h2>
+          <p class="muted">
+            Export a full backup first. A local pre-reset backup is also required before anything is
+            replaced.
+          </p>
+          <label
+            >Section to reset<select [(ngModel)]="resetChoice">
+              <option value="finance">Finance</option>
+              <option value="learning">Learning journal</option>
+              <option value="jobs">Job applications</option>
+              <option value="goals">Goals</option>
+              <option value="planner">Daily planner</option>
+              <option value="journal">Personal journal & daily notes</option>
+              <option value="streaks">Streaks & history</option>
+              <option value="all">All application records</option>
+            </select></label
+          ><button
+            class="btn danger"
+            (click)="resetRevision = tracker.data().revision ?? 0; resetting.set(true)"
+          >
+            Reset selected section
+          </button>
+        </section>
       </div>
       <aside>
         <section class="panel settings-section">
@@ -163,6 +189,17 @@ import { ConfirmDialog } from '../../shared/dialog';
           @if (error()) {
             <p class="error" role="alert">{{ error() }}</p>
           }
+          <button
+            class="btn full-width"
+            [disabled]="!tracker.storage.safetyBackup()"
+            (click)="downloadSafety()"
+          >
+            Export last pre-restore backup
+          </button>
+          <p class="helper">
+            Before any import or reset, the current stored data is kept as a safety backup in this
+            browser. Export it here for safekeeping. A full browser clear removes this backup too.
+          </p>
           <p class="helper">
             Imports are checked before they replace your current data. Maximum file size: 20 MB.
           </p>
@@ -173,10 +210,23 @@ import { ConfirmDialog } from '../../shared/dialog';
           <p>No feeds. No followers.<br />Just a little space to become.</p>
         </div>
         <p class="helper settings-version">
-          STREAKLY · DATA VERSION 2<br />Small actions. Big consistency.
+          STREAKLY · DATA VERSION 3<br />Small actions. Big consistency.
         </p>
       </aside>
     </div>
+    @if (resetting()) {
+      <app-confirm
+        title="Reset these records?"
+        [message]="
+          'Reset ' +
+          resetChoice +
+          '? This removes its records and clears related links. A safety backup will be created first. Other sections stay intact unless you select all application records.'
+        "
+        label="Confirm reset"
+        (cancel)="resetting.set(false)"
+        (confirm)="reset()"
+      />
+    }
     @if (pending()) {
       <app-confirm
         title="Restore this chapter?"
@@ -188,7 +238,9 @@ import { ConfirmDialog } from '../../shared/dialog';
           pending()!.completions.length +
           ' recorded moments and ' +
           (pending()!.todos?.length ?? 0) +
-          ' tasks. Importing replaces all current data. Export a backup first to keep it.'
+          ' tasks, ' +
+          (pending()!.life ? pending()!.life!.transactions.length : 0) +
+          ' financial transactions and all included life records. A safety backup of current data will be created before replacement.'
         "
         label="Replace with backup"
         (cancel)="pending.set(null)"
@@ -220,6 +272,32 @@ export class Settings {
   }
   pending = signal<AppData | null>(null);
   pendingRevision = 0;
+  resetChoice = 'finance';
+  resetRevision = 0;
+  resetting = signal(false);
+  downloadSafety() {
+    const backup = this.tracker.storage.safetyBackup();
+    if (backup) downloadFile(backup, 'streakly-pre-restore-' + dateKey() + '.json');
+  }
+  reset() {
+    if (
+      (this.tracker.data().revision ?? 0) !== this.resetRevision ||
+      this.tracker.storage.external()
+    ) {
+      this.resetting.set(false);
+      this.error.set('Data changed while confirmation was open. Review and retry.');
+      return;
+    }
+    try {
+      if (this.tracker.resetSection(this.resetChoice)) {
+        this.resetting.set(false);
+        this.tracker.notify('Selected records reset. A pre-reset safety backup is available.');
+      }
+    } catch (e) {
+      this.error.set(e instanceof Error ? e.message : 'Reset failed. No changes were saved.');
+    }
+  }
+
   saveName() {
     if (this.name.trim() && this.tracker.update((d) => (d.preferences.name = this.name.trim())))
       this.tracker.notify('Nice to see you, ' + this.name.trim() + '.');

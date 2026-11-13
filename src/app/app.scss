@@ -423,3 +423,10 @@ main {
     right: 15px;
   }
 }
+/* Keep the expanded personal navigation usable without an unrelated decorative block. */
+.sidebar-quote {
+  display: none;
+}
+.brand-caption {
+  margin-bottom: 28px;
+}

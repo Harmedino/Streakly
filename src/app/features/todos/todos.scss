@@ -212,3 +212,25 @@
     gap: 12px;
   }
 }
+.todo-composer form {
+  flex-wrap: wrap;
+}
+.todo-composer .task-name {
+  min-width: min(260px, 100%);
+}
+.planner-scope {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 20px 0;
+}
+.planner-scope label {
+  margin: 0;
+  min-width: 180px;
+}
+.todo-text .status-pill {
+  margin-top: 8px;
+  margin-right: 8px;
+}

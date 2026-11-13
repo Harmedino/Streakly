@@ -177,7 +177,7 @@ describe('Migration and concurrent tabs', () => {
       completions: [{ activityId: a.id, date: '2024-01-01', quantity: 1, note: 'Original' }],
     };
     const result = validateData(old);
-    expect(result.version).toBe(2);
+    expect(result.version).toBe(3);
     expect(result.activities[0].progressType).toBe('binary');
     expect(result.completions[0].note).toBe('Original');
     expect(validateData(result)).toEqual(result);

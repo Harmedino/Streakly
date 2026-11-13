@@ -12,27 +12,23 @@
   <p class="brand-caption">SMALL ACTIONS. BIG CONSISTENCY.</p>
   <span class="nav-label">YOUR PERSONAL SPACE</span>
   <nav class="desktop-nav" aria-label="Main navigation">
-    <a
-      routerLink="/"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: true }"
-      (click)="mobile.set(false)"
-      ><app-icon name="dashboard" />Overview<span class="nav-active-dot"></span></a
-    ><a routerLink="/activities" routerLinkActive="active" (click)="mobile.set(false)"
-      ><app-icon name="target" />My activities<span class="nav-counter">{{
-        tracker.active().length
-      }}</span></a
-    ><a
-      routerLink="/todos"
-      routerLinkActive="active"
-      aria-label="To-do list"
-      (click)="mobile.set(false)"
-      ><app-icon name="check" />To-do list<span class="nav-counter">{{ todoCount() }}</span></a
-    ><a routerLink="/calendar" routerLinkActive="active" (click)="mobile.set(false)"
-      ><app-icon name="calendar" />Calendar</a
-    ><a routerLink="/statistics" routerLinkActive="active" (click)="mobile.set(false)"
-      ><app-icon name="chart" />Insights</a
-    >
+    @for (item of navigation; track item.path) {
+      <a
+        [routerLink]="item.path"
+        [attr.aria-label]="item.label"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+        ariaCurrentWhenActive="page"
+        (click)="mobile.set(false)"
+        ><app-icon [name]="item.icon" />{{ item.label }}
+        @if (item.path === '/activities') {
+          <span class="nav-counter">{{ tracker.active().length }}</span>
+        }
+        @if (item.path === '/planner') {
+          <span class="nav-counter">{{ todoCount() }}</span>
+        }
+      </a>
+    }
   </nav>
   <button
     class="sidebar-add"
