@@ -15,9 +15,9 @@ import { EmptyState } from '../../shared/ui';
   imports: [DailyNote, FormsModule, RouterLink, Calendar, Icon, RecordForm, EmptyState],
   template: `<div class="page-heading">
       <div>
-        <span class="eyebrow">THE DAYS ADD UP</span>
-        <h1>Your consistency calendar<span class="greeting-dot">.</span></h1>
-        <p>A little perspective on all the times you showed up.</p>
+        <span class="eyebrow">HISTORY & CHECK-INS</span>
+        <h1>Consistency calendar<span class="greeting-dot">.</span></h1>
+        <p>See your rhythm. Revisit a day. Keep moving forward.</p>
       </div>
       <select
         aria-label="Filter calendar by activity"

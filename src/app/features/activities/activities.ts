@@ -9,6 +9,7 @@ import { EmptyState } from '../../shared/ui';
 @Component({
   selector: 'app-activities',
   imports: [FormsModule, RouterLink, Icon, ActivityCard, ActivityForm, EmptyState],
+  styleUrl: './activities.scss',
   template: `<div class="page-heading">
       <div>
         <div class="eyebrow">MAKE SPACE FOR WHAT MATTERS</div>
@@ -18,6 +19,24 @@ import { EmptyState } from '../../shared/ui';
       <button class="btn primary" (click)="create.set(true)">
         <app-icon name="plus" [size]="18" />New activity
       </button>
+    </div>
+    <div class="streak-overview">
+      <div>
+        <span class="streak-overview-icon"><app-icon name="flame" [size]="20" /></span
+        ><strong>{{ tracker.active().length }}</strong
+        ><span>active habits</span>
+      </div>
+      <div>
+        <strong>{{ tracker.done() }} / {{ tracker.scheduled().length }}</strong
+        ><span>completed today</span>
+      </div>
+      <div>
+        <a class="text-button" routerLink="/calendar"
+          ><app-icon name="calendar" [size]="16" />Calendar history</a
+        ><a class="text-button" routerLink="/statistics"
+          ><app-icon name="chart" [size]="16" />Habit insights</a
+        >
+      </div>
     </div>
     <div class="toolbar">
       <div class="search-input">

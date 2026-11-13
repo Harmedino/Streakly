@@ -1,0 +1,62 @@
+/* Streakly's shared palette, scale and surface primitives. */
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --sidebar: #f0f1f5;
+  --ink: #20232c;
+  --muted: #6a7080;
+  --line: #e5e7ed;
+  --line-strong: #ced2dd;
+  --accent: #6354c7;
+  --accent-hover: #5142b0;
+  --accent-soft: #eeeafa;
+  --olive: var(--accent);
+  --lime: var(--accent);
+  --nav-active: #e7e3f5;
+  --hover: #f3f4f7;
+  --avatar: #e2ddf3;
+  --banner: #eeebf8;
+  --positive: #297d67;
+  --positive-soft: #e9f5ef;
+  --negative: #b65155;
+  --negative-soft: #fbeef0;
+  --shadow: 0 2px 5px #20232c04;
+  --shadow-dialog: 0 24px 80px #10152424;
+  --radius: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 18px;
+  --serif: 'DM Sans Variable', sans-serif;
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --bg: #14151a;
+  --surface: #1c1e25;
+  --sidebar: #181a20;
+  --ink: #ececf2;
+  --muted: #a0a4b5;
+  --line: #2c2f3a;
+  --line-strong: #454959;
+  --accent: #b2a3ff;
+  --accent-hover: #c6baff;
+  --accent-soft: #2d2741;
+  --nav-active: #302a44;
+  --hover: #242731;
+  --avatar: #38304f;
+  --banner: #282336;
+  --positive: #83d0af;
+  --positive-soft: #20382f;
+  --negative: #f2a2ab;
+  --negative-soft: #3f272e;
+  --shadow: 0 2px 5px #0000000a;
+  --shadow-dialog: 0 24px 80px #0008;
+  color-scheme: dark;
+}

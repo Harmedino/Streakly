@@ -110,6 +110,80 @@ import {
     @case ('leaf') {
       <svg lucideLeaf [size]="size()" />
     }
+    @case ('wallet') {
+      <svg
+        [attr.width]="size()"
+        [attr.height]="size()"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M20 8V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v11H5a3 3 0 0 1-3-3V6" />
+        <path d="M20 12h-4a2 2 0 0 0 0 4h4" />
+      </svg>
+    }
+    @case ('book') {
+      <svg
+        [attr.width]="size()"
+        [attr.height]="size()"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 7v14m0-14C9 4 5 4 2 5v15c3-1 7-1 10 1m0-14c3-3 7-3 10-2v15c-3-1-7-1-10 1" />
+      </svg>
+    }
+    @case ('briefcase') {
+      <svg
+        [attr.width]="size()"
+        [attr.height]="size()"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="3" y="7" width="18" height="14" rx="2" />
+        <path d="M8 7V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3M3 12c6 3 12 3 18 0M12 12v4" />
+      </svg>
+    }
+    @case ('notebook') {
+      <svg
+        [attr.width]="size()"
+        [attr.height]="size()"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path
+          d="M18 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12M8 3v18M2 7h4M2 12h4M2 17h4M13 8h5M13 12h5M13 16h3"
+        />
+      </svg>
+    }
+    @case ('incoming') {
+      <svg
+        [attr.width]="size()"
+        [attr.height]="size()"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="m7 7 0 10 10 0M7 17 20 4" />
+      </svg>
+    }
     @case ('menu') {
       <svg lucideMenu [size]="size()" />
     }

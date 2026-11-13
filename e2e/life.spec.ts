@@ -176,9 +176,13 @@ test('learning, applications, goals, reflection, planner and combined reports pe
     .selectOption('Interview');
   await save(page);
   await page.getByLabel('Application status filter', { exact: true }).selectOption('Rejected');
-  await expect(page.getByText('Frontend developer · Acme', { exact: true })).not.toBeVisible();
+  await expect(
+    page.locator('.application-row').filter({ hasText: 'Frontend developer' }),
+  ).not.toBeVisible();
   await page.getByLabel('Application status filter', { exact: true }).selectOption('Interview');
-  await expect(page.getByText('Frontend developer · Acme', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('.application-row').filter({ hasText: 'Frontend developer' }),
+  ).toBeVisible();
   await page.goto('/goals');
   await page.getByRole('button', { name: 'Add goal', exact: true }).click();
   d = page.getByRole('dialog');
@@ -206,19 +210,19 @@ test('learning, applications, goals, reflection, planner and combined reports pe
     .click();
   await page.goto('/reports');
   await expect(
-    page.getByText('60 minutes of learning, 1 applications, and 1 completed tasks.', {
+    page.getByText('60 minutes of learning, 1 application, and 1 completed task.', {
       exact: true,
     }),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByText('60 minutes of learning, 1 applications, and 1 completed tasks.', {
+    page.getByText('60 minutes of learning, 1 application, and 1 completed task.', {
       exact: true,
     }),
   ).toBeVisible();
   await page.goto('/');
-  await expect(page.locator('.dashboard-life-stats')).toContainText('1 h');
-  await expect(page.locator('.dashboard-life-stats')).toContainText('Active goals');
+  await expect(page.locator('.growth-preview')).toContainText('1 hour');
+  await expect(page.locator('.goals-preview')).toContainText('Goals in motion');
 });
 test('new modules fit phone and tablet widths and backups include all modules', async ({
   page,

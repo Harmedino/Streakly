@@ -1,342 +1,423 @@
-<div class="page-heading">
-  <div>
-    <span class="eyebrow">YOUR PERSONAL GROWTH</span>
-    <h1>{{ names[kind] }}<span class="greeting-dot">.</span></h1>
-    <p>{{ taglines[kind] }}</p>
+<div class="records-workspace" [class]="'records-workspace ' + kind">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">{{
+        kind === 'learning'
+          ? 'STAY CURIOUS'
+          : kind === 'jobs'
+            ? 'YOUR NEXT CHAPTER'
+            : kind === 'journal'
+              ? 'A MOMENT TO REFLECT'
+              : 'INTENTION INTO ACTION'
+      }}</span>
+      <h1>{{ names[kind] }}<span class="greeting-dot">.</span></h1>
+      <p>{{ taglines[kind] }}</p>
+    </div>
+    <button class="btn primary" (click)="open()">
+      <app-icon name="plus" [size]="17" />{{
+        kind === 'jobs' ? 'Add application' : kind === 'goals' ? 'Add goal' : 'Add entry'
+      }}
+    </button>
   </div>
-  <button class="btn primary" (click)="open()">
-    <app-icon name="plus" [size]="17" />{{
-      kind === 'jobs' ? 'Add application' : kind === 'goals' ? 'Add goal' : 'Add entry'
-    }}
-  </button>
-</div>
-@if (life.error() && !editor()) {
-  <p class="error" role="alert">{{ life.error() }}</p>
-}
-@if (kind === 'learning') {
-  <div class="life-stats">
-    <div>
-      <span>This week</span><strong>{{ hours(week()) }} h</strong
-      ><small>Recorded learning time</small>
-    </div>
-    <div>
-      <span>This month</span><strong>{{ hours(month()) }} h</strong
-      ><small>Recorded learning time</small>
-    </div>
-    <div>
-      <span>All-time learning</span><strong>{{ hours() }} h</strong
-      ><small>{{ life.data().learning.length }} entries</small>
-    </div>
-  </div>
-}
-@if (kind === 'jobs') {
-  <div class="life-stats">
-    <div>
-      <span>This week</span><strong>{{ jobsThisWeek() }}</strong
-      ><small>Applications submitted</small>
-    </div>
-    <div>
-      <span>This month</span><strong>{{ jobsThisMonth() }}</strong
-      ><small>Applications submitted</small>
-    </div>
-    <div>
-      <span>All applications</span><strong>{{ life.data().jobs.length }}</strong
-      ><small>Personal records, no automated applications</small>
-    </div>
-  </div>
-  <section class="panel spaced-panel">
-    <h2>Your monthly application activity</h2>
-    <div class="weekly-chart">
-      @for (m of jobTrend(); track m.month) {
-        <div class="chart-column">
-          <span>{{ m.count }}</span>
-          <div class="bar-space">
-            <div class="week-bar" [style.height.%]="(m.count / maxJobs()) * 100"></div>
-          </div>
-          <span>{{ m.month }}</span>
-        </div>
-      }
-    </div>
-  </section>
-}
-<div class="toolbar">
-  <div class="search-input">
-    <app-icon name="search" [size]="17" /><input
-      aria-label="Search records"
-      placeholder="Search your records…"
-      [ngModel]="search()"
-      (ngModelChange)="search.set($event)"
-    />
-  </div>
+  @if (life.error() && !editor()) {
+    <p class="error" role="alert">{{ life.error() }}</p>
+  }
   @if (kind === 'learning') {
-    <select
-      aria-label="Learning category filter"
-      [ngModel]="filter()"
-      (ngModelChange)="filter.set($event)"
-    >
-      <option value="">All topics / categories</option>
-      @for (c of learningCategories(); track c) {
-        <option>{{ c }}</option>
-      }
-    </select>
+    <div class="life-stats">
+      <div>
+        <span>This week</span><strong>{{ hours(week()) }} h</strong
+        ><small>Recorded learning time</small>
+      </div>
+      <div>
+        <span>This month</span><strong>{{ hours(month()) }} h</strong
+        ><small>Recorded learning time</small>
+      </div>
+      <div>
+        <span>All-time learning</span><strong>{{ hours() }} h</strong
+        ><small>{{ life.data().learning.length }} entries</small>
+      </div>
+    </div>
   }
   @if (kind === 'jobs') {
-    <select
-      aria-label="Application status filter"
-      [ngModel]="filter()"
-      (ngModelChange)="filter.set($event)"
-    >
-      <option value="">All statuses</option>
-      @for (s of ['Applied', 'Interview', 'Rejected', 'Offer']; track s) {
-        <option>{{ s }}</option>
+    <div class="life-stats">
+      <div>
+        <span>This week</span><strong>{{ jobsThisWeek() }}</strong
+        ><small>Applications submitted</small>
+      </div>
+      <div>
+        <span>This month</span><strong>{{ jobsThisMonth() }}</strong
+        ><small>Applications submitted</small>
+      </div>
+      <div>
+        <span>All applications</span><strong>{{ life.data().jobs.length }}</strong
+        ><small>Personal records, no automated applications</small>
+      </div>
+    </div>
+    <div class="application-pipeline">
+      @for (status of ['Applied', 'Interview', 'Offer', 'Rejected']; track status) {
+        <button
+          (click)="filter.set(filter() === status ? '' : status)"
+          [class.selected]="filter() === status"
+          [attr.aria-pressed]="filter() === status"
+        >
+          <span class="pipeline-dot" [attr.data-status]="status"></span><span>{{ status }}</span
+          ><strong>{{ jobCount(status) }}</strong>
+        </button>
       }
-    </select>
+    </div>
+    <details class="application-trend">
+      <summary>Application activity · last six months</summary>
+      <section class="panel spaced-panel">
+        <h2>Your monthly application activity</h2>
+        <div class="weekly-chart">
+          @for (m of jobTrend(); track m.month) {
+            <div class="chart-column">
+              <span>{{ m.count }}</span>
+              <div class="bar-space">
+                <div class="week-bar" [style.height.%]="(m.count / maxJobs()) * 100"></div>
+              </div>
+              <span>{{ pretty(m.month + '-01', { month: 'short' }) }}</span>
+            </div>
+          }
+        </div>
+      </section>
+    </details>
   }
   @if (kind === 'goals') {
-    <select
-      aria-label="Goal status filter"
-      [ngModel]="filter()"
-      (ngModelChange)="filter.set($event)"
-    >
-      <option value="">All goals</option>
-      <option value="active">Active</option>
-      <option value="completed">Completed</option>
-      <option value="overdue">Overdue</option>
-      <option value="paused">Paused</option>
-    </select>
+    <div class="goal-overview">
+      <div>
+        <span class="goal-overview-symbol"><app-icon name="target" [size]="24" /></span>
+        <div>
+          <strong>{{ goalCount('active') }}</strong
+          ><span>goals in motion</span>
+        </div>
+      </div>
+      <div>
+        <strong>{{ goalCount('completed') }}</strong
+        ><span>completed</span>
+      </div>
+      <p>Big ambitions.<br /><strong>Small, deliberate steps.</strong></p>
+    </div>
   }
-  @if (dateFilter()) {
-    <button class="btn" (click)="dateFilter.set('')">Clear {{ dateFilter() }} filter</button>
+  @if (kind === 'journal') {
+    <div class="journal-intro">
+      <app-icon name="notebook" [size]="22" />
+      <p>
+        A clearer mind starts with a little reflection.<span
+          >{{ life.data().journal.length }} saved
+          {{ life.data().journal.length === 1 ? 'reflection' : 'reflections' }} · A space just for
+          you</span
+        >
+      </p>
+    </div>
   }
-</div>
-<div [class.life-columns]="kind === 'learning' || kind === 'journal'">
-  <div>
+  <div class="toolbar">
+    <div class="search-input">
+      <app-icon name="search" [size]="17" /><input
+        aria-label="Search records"
+        placeholder="Search your records…"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
     @if (kind === 'learning') {
-      @for (e of learning(); track e.id) {
-        <article class="panel spaced-panel">
-          <div class="section-heading">
-            <div>
-              <span class="eyebrow">{{ e.date }} · {{ e.category }}</span>
-              <h2>{{ e.topic }}</h2>
-            </div>
-            <span class="pill">{{ e.minutes }} min</span>
-          </div>
-          <p class="record-description">{{ e.description }}</p>
-          @if (e.notes) {
-            <p class="record-description">{{ e.notes }}</p>
-          }
-          @if (e.next) {
-            <p class="helper">Next: {{ e.next }}</p>
-          }
-          <div class="quick-actions">
-            @for (url of urls(e.resources); track url) {
-              <a class="text-button" [href]="url" target="_blank" rel="noopener noreferrer"
-                >Resource ↗</a
-              >
-            }
-            @if (linkedActivity(e.activityId); as a) {
-              <a class="text-button" [routerLink]="['/activities', a.id]"
-                >{{ a.name }} · streak linked</a
-              >
-            }
-            <button class="text-button" (click)="open(e)">Edit entry</button
-            ><button class="text-button destructive" (click)="ask(e.id, e.topic)">
-              Delete entry
-            </button>
-          </div>
-        </article>
-      } @empty {
-        <section class="panel">
-          <app-empty
-            title="Keep a little of what you learn."
-            description="Record your first topic, time spent, and the next thing you want to explore."
-          />
-        </section>
-      }
+      <select
+        aria-label="Learning category filter"
+        [ngModel]="filter()"
+        (ngModelChange)="filter.set($event)"
+      >
+        <option value="">All topics / categories</option>
+        @for (c of learningCategories(); track c) {
+          <option>{{ c }}</option>
+        }
+      </select>
     }
     @if (kind === 'jobs') {
-      <section class="panel">
-        @for (j of jobs(); track j.id) {
-          <div class="record-row application-row">
-            <div>
-              <strong>{{ j.position }} · {{ j.company }}</strong
-              ><small>{{ j.date }} · {{ j.status }}</small>
-              <p class="record-description">{{ j.notes }}</p>
-            </div>
-            @if (j.link) {
-              <a class="text-button" [href]="j.link" target="_blank" rel="noopener noreferrer"
-                >Job link ↗</a
-              >
-            }
-            <button class="text-button" (click)="open(j)">Edit application</button
-            ><button
-              class="text-button destructive"
-              (click)="ask(j.id, j.company + ' · ' + j.position)"
-            >
-              Delete application
-            </button>
-          </div>
-        } @empty {
-          <app-empty
-            title="Every application is a step forward."
-            description="A company, a role, a date. Keep a simple record of where you have applied."
-          />
+      <select
+        aria-label="Application status filter"
+        [ngModel]="filter()"
+        (ngModelChange)="filter.set($event)"
+      >
+        <option value="">All statuses</option>
+        @for (s of ['Applied', 'Interview', 'Rejected', 'Offer']; track s) {
+          <option>{{ s }}</option>
         }
-      </section>
+      </select>
     }
     @if (kind === 'goals') {
-      <div class="module-grid">
-        @for (g of goals(); track g.id) {
-          <article class="panel spaced-panel">
-            <span class="eyebrow">{{ g.category }} · {{ g.priority }} PRIORITY</span>
-            <h2>{{ g.title }}</h2>
-            <p class="record-description">{{ g.description }}</p>
-            <span class="status-pill">{{
-              g.status === 'completed'
-                ? 'Completed'
-                : g.deadline < tracker.today()
-                  ? 'Overdue'
-                  : g.status
-            }}</span>
-            <p class="helper">
-              {{ g.startDate }} → {{ g.deadline }} · {{ goalProgress(g) }}% complete
-            </p>
-            <app-progress [value]="goalProgress(g)" />
-            <div class="milestone-list">
-              @for (m of g.milestones; track m.id) {
-                <button
-                  [class.done]="m.done"
-                  [attr.aria-pressed]="m.done"
-                  (click)="life.toggleMilestone(g, m.id)"
+      <select
+        aria-label="Goal status filter"
+        [ngModel]="filter()"
+        (ngModelChange)="filter.set($event)"
+      >
+        <option value="">All goals</option>
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+        <option value="overdue">Overdue</option>
+        <option value="paused">Paused</option>
+      </select>
+    }
+    @if (dateFilter()) {
+      <button class="btn" (click)="dateFilter.set('')">Clear {{ dateFilter() }} filter</button>
+    }
+  </div>
+  <div class="records-layout" [class.life-columns]="kind === 'learning' || kind === 'journal'">
+    <div>
+      @if (kind === 'learning') {
+        @for (e of learning(); track e.id) {
+          <article class="panel spaced-panel learning-entry">
+            <div class="section-heading">
+              <div>
+                <span class="entry-meta"
+                  ><time>{{
+                    pretty(e.date, { day: 'numeric', month: 'short', year: 'numeric' })
+                  }}</time
+                  ><span class="status-pill">{{ e.category }}</span></span
                 >
-                  <app-icon [name]="m.done ? 'check' : 'target'" [size]="17" />{{ m.title }}
-                </button>
-              }
+                <h2>{{ e.topic }}</h2>
+              </div>
+              <span class="pill">{{ e.minutes }} min</span>
             </div>
-            @if (linkedActivity(g.activityId); as a) {
-              <a class="text-button" [routerLink]="['/activities', a.id]"
-                >Related streak: {{ a.name }} ↗</a
-              >
+            <p class="record-description">{{ e.description }}</p>
+            @if (e.notes) {
+              <p class="record-description">{{ e.notes }}</p>
             }
-            @if (linkedSavings(g.savingsId); as savings) {
-              <a class="text-button" routerLink="/finance" [queryParams]="{ tab: 'Savings' }"
-                >Savings goal: {{ savings.name }} ·
-                {{ Math.round((goalSavings(savings.id) / savings.target) * 100) }}% ↗</a
-              >
-            }
-            @if (g.learningCategory) {
-              <a
-                class="text-button"
-                routerLink="/learning"
-                [queryParams]="{ category: g.learningCategory }"
-                >Related learning: {{ g.learningCategory }} ·
-                {{ categoryHours(g.learningCategory) }} h ↗</a
-              >
+            @if (e.next) {
+              <p class="helper">Next: {{ e.next }}</p>
             }
             <div class="quick-actions">
-              <button class="text-button" (click)="open(g)">Edit goal</button
-              ><button class="text-button destructive" (click)="ask(g.id, g.title)">
-                Delete goal
+              @for (url of urls(e.resources); track url) {
+                <a class="text-button" [href]="url" target="_blank" rel="noopener noreferrer"
+                  >Resource ↗</a
+                >
+              }
+              @if (linkedActivity(e.activityId); as a) {
+                <a class="text-button" [routerLink]="['/activities', a.id]"
+                  >{{ a.name }} · streak linked</a
+                >
+              }
+              <button class="text-button" (click)="open(e)">Edit entry</button
+              ><button class="text-button destructive" (click)="ask(e.id, e.topic)">
+                Delete entry
               </button>
             </div>
           </article>
         } @empty {
           <section class="panel">
             <app-empty
-              title="Give your next chapter a direction."
-              description="Create a goal, choose a deadline, and break it into small milestones."
+              title="Keep a little of what you learn."
+              description="Record your first topic, time spent, and the next thing you want to explore."
             />
           </section>
         }
-      </div>
-    }
-    @if (kind === 'journal') {
-      @for (j of journal(); track j.id) {
-        <article class="panel spaced-panel">
-          <div class="section-heading">
-            <h2>
-              {{
-                pretty(j.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-              }}
-            </h2>
-            @if (j.mood) {
-              <span class="pill">Mood {{ j.mood }} / 5</span>
-            }
-          </div>
-          @for (
-            part of [
-              { label: 'Accomplished', value: j.accomplished },
-              { label: 'Learned', value: j.learned },
-              { label: 'Challenges', value: j.challenges },
-              { label: 'Ideas', value: j.ideas },
-              { label: 'Improve', value: j.improve },
-              { label: 'Tomorrow', value: j.tomorrow },
-            ];
-            track part.label
-          ) {
-            @if (part.value) {
-              <h3>{{ part.label }}</h3>
-              <p class="record-description">{{ part.value }}</p>
-            }
-          }
-          <div class="quick-actions">
-            <button class="text-button" (click)="open(j)">Edit reflection</button
-            ><button
-              class="text-button destructive"
-              (click)="ask(j.id, 'Reflection for ' + j.date)"
-            >
-              Delete reflection
-            </button>
-          </div>
-        </article>
-      } @empty {
+      }
+      @if (kind === 'jobs') {
         <section class="panel">
-          <app-empty
-            title="How did your day feel?"
-            description="Make room for your wins, challenges, ideas, and tomorrow’s priorities."
-          />
+          @for (j of jobs(); track j.id) {
+            <div class="record-row application-row">
+              <div>
+                <span class="company-mark" aria-hidden="true">{{
+                  j.company.slice(0, 1).toUpperCase()
+                }}</span>
+                <div class="application-copy">
+                  <strong>{{ j.position }}</strong
+                  ><small>{{ j.company }} · {{ pretty(j.date) }}</small
+                  ><span class="job-status" [attr.data-status]="j.status"
+                    ><i></i>{{ j.status }}</span
+                  >
+                </div>
+                <p class="record-description">{{ j.notes }}</p>
+              </div>
+              @if (j.link) {
+                <a class="text-button" [href]="j.link" target="_blank" rel="noopener noreferrer"
+                  >Job link ↗</a
+                >
+              }
+              <button class="text-button" (click)="open(j)">Edit application</button
+              ><button
+                class="text-button destructive"
+                (click)="ask(j.id, j.company + ' · ' + j.position)"
+              >
+                Delete application
+              </button>
+            </div>
+          } @empty {
+            <app-empty
+              title="Every application is a step forward."
+              description="A company, a role, a date. Keep a simple record of where you have applied."
+            />
+          }
         </section>
       }
+      @if (kind === 'goals') {
+        <div class="module-grid">
+          @for (g of goals(); track g.id) {
+            <article class="panel spaced-panel personal-goal">
+              <span class="eyebrow">{{ g.category }} · {{ g.priority }} PRIORITY</span>
+              <h2>{{ g.title }}</h2>
+              <p class="record-description">{{ g.description }}</p>
+              <span class="status-pill">{{
+                g.status === 'completed'
+                  ? 'Completed'
+                  : g.deadline < tracker.today()
+                    ? 'Overdue'
+                    : g.status
+              }}</span>
+              <p class="helper">
+                {{ g.startDate }} → {{ g.deadline }} · {{ goalProgress(g) }}% complete
+              </p>
+              <div class="goal-progress-heading">
+                <strong>{{ goalProgress(g) }}<small>%</small></strong
+                ><span>of the way there</span>
+              </div>
+              <app-progress [value]="goalProgress(g)" />
+              <div class="milestone-list">
+                @for (m of g.milestones; track m.id) {
+                  <button
+                    [class.done]="m.done"
+                    [attr.aria-pressed]="m.done"
+                    (click)="life.toggleMilestone(g, m.id)"
+                  >
+                    <app-icon [name]="m.done ? 'check' : 'target'" [size]="17" />{{ m.title }}
+                  </button>
+                }
+              </div>
+              @if (linkedActivity(g.activityId); as a) {
+                <a class="text-button" [routerLink]="['/activities', a.id]"
+                  >Related streak: {{ a.name }} ↗</a
+                >
+              }
+              @if (linkedSavings(g.savingsId); as savings) {
+                <a class="text-button" routerLink="/finance" [queryParams]="{ tab: 'Savings' }"
+                  >Savings goal: {{ savings.name }} ·
+                  {{ Math.round((goalSavings(savings.id) / savings.target) * 100) }}% ↗</a
+                >
+              }
+              @if (g.learningCategory) {
+                <a
+                  class="text-button"
+                  routerLink="/learning"
+                  [queryParams]="{ category: g.learningCategory }"
+                  >Related learning: {{ g.learningCategory }} ·
+                  {{ categoryHours(g.learningCategory) }} h ↗</a
+                >
+              }
+              <div class="quick-actions">
+                <button class="text-button" (click)="open(g)">Edit goal</button
+                ><button class="text-button destructive" (click)="ask(g.id, g.title)">
+                  Delete goal
+                </button>
+              </div>
+            </article>
+          } @empty {
+            <section class="panel">
+              <app-empty
+                title="Give your next chapter a direction."
+                description="Create a goal, choose a deadline, and break it into small milestones."
+              />
+            </section>
+          }
+        </div>
+      }
+      @if (kind === 'journal') {
+        @for (j of journal(); track j.id) {
+          <article class="panel spaced-panel reflection-entry">
+            <div class="reflection-date">
+              <span>{{ pretty(j.date, { day: 'numeric' }) }}</span
+              ><small>{{ pretty(j.date, { month: 'short' }) }}</small>
+            </div>
+            <div class="reflection-content">
+              <div class="section-heading">
+                <h2>
+                  {{
+                    pretty(j.date, {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })
+                  }}
+                </h2>
+                @if (j.mood) {
+                  <span class="pill">Mood {{ j.mood }} / 5</span>
+                }
+              </div>
+              @for (
+                part of [
+                  { label: 'Accomplished', value: j.accomplished },
+                  { label: 'Learned', value: j.learned },
+                  { label: 'Challenges', value: j.challenges },
+                  { label: 'Ideas', value: j.ideas },
+                  { label: 'Improve', value: j.improve },
+                  { label: 'Tomorrow', value: j.tomorrow },
+                ];
+                track part.label
+              ) {
+                @if (part.value) {
+                  <h3>{{ part.label }}</h3>
+                  <p class="record-description">{{ part.value }}</p>
+                }
+              }
+              <div class="quick-actions">
+                <button class="text-button" (click)="open(j)">Edit reflection</button
+                ><button
+                  class="text-button destructive"
+                  (click)="ask(j.id, 'Reflection for ' + j.date)"
+                >
+                  Delete reflection
+                </button>
+              </div>
+            </div>
+          </article>
+        } @empty {
+          <section class="panel">
+            <app-empty
+              title="How did your day feel?"
+              description="Make room for your wins, challenges, ideas, and tomorrow’s priorities."
+            />
+          </section>
+        }
+      }
+    </div>
+    @if (kind === 'learning' || kind === 'journal') {
+      <aside>
+        <section class="panel spaced-panel">
+          <h2>{{ kind === 'learning' ? 'Learning calendar' : 'Reflection calendar' }}</h2>
+          <app-calendar
+            [recordDates]="recordDates()"
+            [recordLabel]="kind === 'learning' ? 'learning entries' : 'reflections'"
+            [selected]="dateFilter()"
+            (select)="dateFilter.set($event)"
+          />
+          <p class="helper">
+            Select a day to browse its saved entries. Your existing quick daily notes remain
+            available on Overview and the streak calendar.
+          </p>
+        </section>
+      </aside>
     }
   </div>
-  @if (kind === 'learning' || kind === 'journal') {
-    <aside>
-      <section class="panel spaced-panel">
-        <h2>{{ kind === 'learning' ? 'Learning calendar' : 'Reflection calendar' }}</h2>
-        <app-calendar
-          [recordDates]="recordDates()"
-          [recordLabel]="kind === 'learning' ? 'learning entries' : 'reflections'"
-          [selected]="dateFilter()"
-          (select)="dateFilter.set($event)"
-        />
-        <p class="helper">
-          Select a day to browse its saved entries. Your existing quick daily notes remain available
-          on Overview and the streak calendar.
-        </p>
-      </section>
-    </aside>
+  @if (editor(); as e) {
+    <app-entry-form
+      [title]="e.title"
+      [fields]="e.fields"
+      [initial]="e.values"
+      [error]="life.error()"
+      (save)="save($event)"
+      (close)="editor.set(null)"
+    />
+  }
+  @if (deleting(); as d) {
+    <app-confirm
+      title="Delete this record?"
+      [message]="
+        'Remove ' +
+        d.title +
+        '? Linked learning progress will be recalculated; manual streak entries are preserved.'
+      "
+      label="Delete record"
+      (cancel)="deleting.set(null)"
+      (confirm)="remove()"
+    />
   }
 </div>
-@if (editor(); as e) {
-  <app-entry-form
-    [title]="e.title"
-    [fields]="e.fields"
-    [initial]="e.values"
-    [error]="life.error()"
-    (save)="save($event)"
-    (close)="editor.set(null)"
-  />
-}
-@if (deleting(); as d) {
-  <app-confirm
-    title="Delete this record?"
-    [message]="
-      'Remove ' +
-      d.title +
-      '? Linked learning progress will be recalculated; manual streak entries are preserved.'
-    "
-    label="Delete record"
-    (cancel)="deleting.set(null)"
-    (confirm)="remove()"
-  />
-}

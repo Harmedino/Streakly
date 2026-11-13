@@ -12,18 +12,26 @@ import { ConfirmDialog } from '../../shared/dialog';
 @Component({
   selector: 'app-settings',
   imports: [FormsModule, Icon, ConfirmDialog],
+  styleUrl: './settings.scss',
   template: `<div class="page-heading">
       <div>
-        <span class="eyebrow">MAKE YOURSELF AT HOME</span>
-        <h1>Your little corner<span class="greeting-dot">.</span></h1>
-        <p>A space that feels like you. Progress that stays yours.</p>
+        <span class="eyebrow">YOUR WORKSPACE</span>
+        <h1>Settings<span class="greeting-dot">.</span></h1>
+        <p>Personalize your space and keep your data safe.</p>
       </div>
     </div>
-    <div class="settings-layout">
-      <div>
-        <section class="panel settings-section">
+    <div class="preferences-workspace">
+      <nav class="preferences-nav" aria-label="Settings sections">
+        <a href="#profile">Profile</a><a href="#appearance">Appearance</a
+        ><a href="#categories">Categories</a><a href="#reminders">Reminders</a
+        ><a href="#install">Install app</a><a href="#backup">Data & backup</a
+        ><a href="#reset">Reset data</a>
+      </nav>
+      <div class="preferences-content">
+        <section id="profile" class="panel settings-section">
           <span class="eyebrow">HELLO, YOU</span>
-          <h2>A personal touch</h2>
+          <h2>Profile</h2>
+          <p class="muted">A familiar face in your personal workspace.</p>
           <form (ngSubmit)="saveName()" #form="ngForm">
             <label
               >What should we call you?<input
@@ -35,9 +43,10 @@ import { ConfirmDialog } from '../../shared/dialog';
             ><button class="btn primary" [disabled]="form.invalid">Save name</button>
           </form>
         </section>
-        <section class="panel settings-section">
+        <section id="appearance" class="panel settings-section">
           <span class="eyebrow">SET THE MOOD</span>
-          <h2>Find your light</h2>
+          <h2>Appearance</h2>
+          <p class="muted">Choose the setting that feels right for you.</p>
           <div class="theme-options">
             <button
               [class.selected]="tracker.data().preferences.theme === 'light'"
@@ -54,7 +63,7 @@ import { ConfirmDialog } from '../../shared/dialog';
             </button>
           </div>
         </section>
-        <section class="panel settings-section">
+        <section id="categories" class="panel settings-section">
           <span class="eyebrow">ROOM FOR YOUR OWN THING</span>
           <h2>Your categories</h2>
           <div class="category-tags">
@@ -97,34 +106,8 @@ import { ConfirmDialog } from '../../shared/dialog';
             /><button class="btn" [disabled]="!category.trim()">Add category</button>
           </form>
         </section>
-        <section class="panel settings-section">
-          <span class="eyebrow">A CONSIDERED FRESH START</span>
-          <h2>Reset a section</h2>
-          <p class="muted">
-            Export a full backup first. A local pre-reset backup is also required before anything is
-            replaced.
-          </p>
-          <label
-            >Section to reset<select [(ngModel)]="resetChoice">
-              <option value="finance">Finance</option>
-              <option value="learning">Learning journal</option>
-              <option value="jobs">Job applications</option>
-              <option value="goals">Goals</option>
-              <option value="planner">Daily planner</option>
-              <option value="journal">Personal journal & daily notes</option>
-              <option value="streaks">Streaks & history</option>
-              <option value="all">All application records</option>
-            </select></label
-          ><button
-            class="btn danger"
-            (click)="resetRevision = tracker.data().revision ?? 0; resetting.set(true)"
-          >
-            Reset selected section
-          </button>
-        </section>
-      </div>
-      <aside>
-        <section class="panel settings-section">
+
+        <section id="reminders" class="panel settings-section">
           <span class="eyebrow">A LITTLE NUDGE</span>
           <h2>Your reminders</h2>
           <p class="muted">
@@ -141,7 +124,7 @@ import { ConfirmDialog } from '../../shared/dialog';
             <button class="btn" (click)="reminders.enable()">Enable reminders</button>
           }
         </section>
-        <section class="panel settings-section">
+        <section id="install" class="panel settings-section">
           <span class="eyebrow">ALWAYS CLOSE BY</span>
           <h2>Take Streakly with you</h2>
           <p class="muted">
@@ -157,7 +140,7 @@ import { ConfirmDialog } from '../../shared/dialog';
             </p>
           }
         </section>
-        <section class="panel settings-section">
+        <section id="backup" class="panel settings-section">
           <app-icon name="download" [size]="27" />
           <h2>Your data, in your hands.</h2>
           <p class="muted">
@@ -204,15 +187,35 @@ import { ConfirmDialog } from '../../shared/dialog';
             Imports are checked before they replace your current data. Maximum file size: 20 MB.
           </p>
         </section>
-        <div class="note-panel">
-          <app-icon name="leaf" [size]="26" />
-          <h3>Built around you.</h3>
-          <p>No feeds. No followers.<br />Just a little space to become.</p>
-        </div>
+        <section id="reset" class="panel settings-section">
+          <span class="eyebrow">A CONSIDERED FRESH START</span>
+          <h2>Reset a section</h2>
+          <p class="muted">
+            Export a full backup first. A local pre-reset backup is also required before anything is
+            replaced.
+          </p>
+          <label
+            >Section to reset<select [(ngModel)]="resetChoice">
+              <option value="finance">Finance</option>
+              <option value="learning">Learning journal</option>
+              <option value="jobs">Job applications</option>
+              <option value="goals">Goals</option>
+              <option value="planner">Daily planner</option>
+              <option value="journal">Personal journal & daily notes</option>
+              <option value="streaks">Streaks & history</option>
+              <option value="all">All application records</option>
+            </select></label
+          ><button
+            class="btn danger"
+            (click)="resetRevision = tracker.data().revision ?? 0; resetting.set(true)"
+          >
+            Reset selected section
+          </button>
+        </section>
         <p class="helper settings-version">
           STREAKLY · DATA VERSION 3<br />Small actions. Big consistency.
         </p>
-      </aside>
+      </div>
     </div>
     @if (resetting()) {
       <app-confirm

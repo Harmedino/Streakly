@@ -31,6 +31,7 @@ const f = (
     Icon,
   ],
   templateUrl: './records.html',
+  styleUrl: './records.scss',
 })
 export class Records {
   life = inject(LifeService);
@@ -52,6 +53,12 @@ export class Records {
     goals: 'Give your intentions somewhere to grow.',
     journal: 'A quiet place to look back, and look ahead.',
   };
+  jobCount(status: string) {
+    return this.life.data().jobs.filter((j) => j.status === status).length;
+  }
+  goalCount(status: string) {
+    return this.life.data().goals.filter((g) => g.status === status).length;
+  }
   search = signal('');
   filter = signal(this.route.snapshot.queryParamMap.get('category') ?? '');
   dateFilter = signal('');

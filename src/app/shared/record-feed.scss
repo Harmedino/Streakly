@@ -1,0 +1,95 @@
+:host {
+  display: block;
+}
+.feed {
+  padding-top: 30px;
+}
+.section-heading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.feed-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+}
+.feed-row:hover strong {
+  color: var(--accent);
+}
+.feed-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.feed-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.feed-row strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.feed-row small,
+.feed-row time {
+  color: var(--muted);
+  font-size: 11px;
+}
+.feed-row small {
+  display: block;
+  margin-top: 4px;
+}
+.feed-row .overdue {
+  color: var(--negative);
+}
+.feed-row > app-icon {
+  color: var(--muted);
+}
+.inline-empty {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 24px 0;
+  color: var(--muted);
+}
+.inline-empty > app-icon {
+  margin-top: 3px;
+  color: var(--accent);
+}
+.inline-empty p {
+  font-size: 13px;
+  color: var(--ink);
+  margin: 0;
+}
+.inline-empty span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+@media (max-width: 600px) {
+  .feed-row {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+  .feed-row > div {
+    flex-basis: calc(100% - 44px);
+  }
+  .feed-row time {
+    margin-left: 42px;
+    font-size: 10px;
+  }
+  .feed-row > app-icon {
+    margin-left: auto;
+  }
+}

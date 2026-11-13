@@ -66,6 +66,7 @@ const field = (
   selector: 'app-finance',
   imports: [FormsModule, EntryForm, ConfirmDialog, Icon, EmptyState, Progress],
   templateUrl: './finance.html',
+  styleUrl: './finance.scss',
 })
 export class Finance {
   life = inject(LifeService);
@@ -85,6 +86,21 @@ export class Finance {
     title: string;
   } | null>(null);
   posting = signal(false);
+  categoryIcon(category: string) {
+    const icons: Record<string, string> = {
+      Food: 'leaf',
+      Transportation: 'arrow',
+      Education: 'book',
+      Health: 'flame',
+      Family: 'sprout',
+      Rent: 'dashboard',
+      Subscriptions: 'calendar',
+      Salary: 'briefcase',
+      Freelancing: 'briefcase',
+      'Data and Airtime': 'chart',
+    };
+    return icons[category] || 'wallet';
+  }
   cash = naira;
   pretty = prettyDate;
   Math = Math;

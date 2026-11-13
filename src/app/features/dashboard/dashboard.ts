@@ -1,3 +1,4 @@
+import { RecordFeed } from '../../shared/record-feed';
 import { LifeService } from '../../services/life';
 import { QuickEntry } from '../../shared/quick-entry';
 import { financeTotals, naira } from '../../core/finance';
@@ -11,12 +12,13 @@ import { Icon } from '../../shared/icon';
 import { ActivityCard } from '../../shared/activity-card';
 import { ActivityForm } from '../../shared/activity-form';
 import { Calendar } from '../../shared/calendar';
-import { EmptyState } from '../../shared/ui';
+import { EmptyState, Progress } from '../../shared/ui';
 import { addDays, prettyDate, weekStart } from '../../core/dates';
 import { dailyCounts, rangeScore } from '../../core/insights';
 @Component({
   selector: 'app-dashboard',
   imports: [
+    RecordFeed,
     QuickEntry,
     DailyNote,
     RouterLink,
@@ -25,8 +27,10 @@ import { dailyCounts, rangeScore } from '../../core/insights';
     ActivityForm,
     Calendar,
     EmptyState,
+    Progress,
   ],
   templateUrl: './dashboard.html',
+  styleUrl: './dashboard.scss',
 })
 export class Dashboard {
   tracker = inject(TrackerService);
@@ -58,6 +62,60 @@ export class Dashboard {
         ).length,
   );
   activeGoals = computed(() => this.life.data().goals.filter((g) => g.status === 'active').length);
+  goalProgress = goalProgress;
+  previewGoals = computed(() =>
+    this.life
+      .data()
+      .goals.filter((g) => g.status === 'active')
+      .slice(0, 3),
+  );
+  recentActivity = computed(() =>
+    [
+      ...this.tracker
+        .data()
+        .completions.map((c) => ({
+          id: 'check:' + c.activityId + c.date,
+          title:
+            this.tracker.data().activities.find((a) => a.id === c.activityId)?.name || 'Activity',
+          date: c.date,
+          label: 'Streak check-in',
+          icon: 'check',
+          path: '/activities/' + c.activityId,
+        })),
+      ...this.life
+        .data()
+        .learning.map((e) => ({
+          id: 'learn:' + e.id,
+          title: e.topic,
+          date: e.date,
+          label: e.minutes + ' minutes of learning',
+          icon: 'sprout',
+          path: '/learning',
+        })),
+      ...this.life
+        .data()
+        .transactions.map((t) => ({
+          id: 'money:' + t.id,
+          title: t.source || t.description || t.category,
+          date: t.date,
+          label: t.kind + ' · ' + naira(t.amount),
+          icon: 'chart',
+          path: '/finance',
+        })),
+      ...this.life
+        .data()
+        .journal.map((j) => ({
+          id: 'journal:' + j.id,
+          title: 'Daily reflection',
+          date: j.date,
+          label: 'Personal journal',
+          icon: 'leaf',
+          path: '/journal',
+        })),
+    ]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 5),
+  );
   deadlines = computed(() =>
     [
       ...this.life

@@ -1,125 +1,90 @@
-<div class="page-heading">
+<div class="page-heading overview-heading">
   <div>
-    <div class="eyebrow"><span class="tiny-dot"></span> YOUR EVERYDAY, A LITTLE BETTER</div>
+    <span class="eyebrow">{{
+      pretty(tracker.today(), { weekday: 'long', day: 'numeric', month: 'long' })
+    }}</span>
     <h1>
       {{ greeting() }}, {{ tracker.data().preferences.name || 'friend'
       }}<span class="greeting-dot">.</span>
     </h1>
-    <p>Small actions today. A little closer to who you want to be.</p>
+    <p>Make space for what matters today.</p>
   </div>
-  <div class="heading-date">
-    <app-icon name="calendar" [size]="17" />{{
-      pretty(tracker.today(), { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
-    }}
-  </div>
+  <button class="btn primary" (click)="create.set(true)">
+    <app-icon name="plus" [size]="16" />New activity
+  </button>
 </div>
-<div class="quick-actions">
-  <button class="btn primary" (click)="quick.set('income')">+ Income</button
-  ><button class="btn" (click)="quick.set('expense')">+ Expense</button
-  ><button class="btn" (click)="quick.set('learning')">+ Learning</button
-  ><button class="btn" (click)="quick.set('progress')">Mark daily progress</button
-  ><a class="text-button" routerLink="/reports">Life reports ↗</a>
-</div>
-<div class="life-stats dashboard-life-stats">
-  <div>
-    <span>Learning this week</span><strong>{{ learningHours() }} h</strong
-    ><small>From your learning journal</small>
-  </div>
-  <div>
-    <span>Applications this month</span><strong>{{ monthlyJobs() }}</strong
-    ><small>Submitted applications</small>
-  </div>
-  <div>
-    <span>Monthly income</span><strong>{{ cash(finance().income) }}</strong
-    ><small>Recorded receipts</small>
-  </div>
-  <div>
-    <span>Monthly expenses</span><strong>{{ cash(finance().expenses) }}</strong
-    ><small>Transfers excluded</small>
-  </div>
-  <div>
-    <span>Current savings</span><strong>{{ cash(finance().savings) }}</strong
-    ><small>Held and earmarked funds</small>
-  </div>
-  <div>
-    <span>Available balance</span><strong>{{ cash(finance().available) }}</strong
-    ><small>Tracked balances after reserves</small>
-  </div>
-  <div>
-    <span>Active goals</span><strong>{{ activeGoals() }}</strong
-    ><small>Intentions in progress</small>
-  </div>
-</div>
-<section class="today-banner">
-  <div class="banner-copy">
-    <span class="eyebrow">SHOW UP FOR YOURSELF</span>
-    <h2>A little progress,<br />a lot of possibility<span> ✦</span></h2>
-    <p>You don't have to do it all. Just take the next small step.</p>
-    <button class="btn ink" (click)="create.set(true)">
-      <app-icon name="plus" [size]="17" /> New activity
-    </button>
-  </div>
-  <div class="banner-art" aria-hidden="true">
-    <div class="art-orbit orbit-one"></div>
-    <div class="art-orbit orbit-two"></div>
-    <span class="art-star star-one">✦</span><span class="art-star star-two">✧</span>
-    <div class="plant-pot"></div>
-    <div class="plant-stem"></div>
-    <div class="plant-leaf leaf-one"></div>
-    <div class="plant-leaf leaf-two"></div>
-    <div class="plant-leaf leaf-three"></div>
-    <span class="art-label">GROW AT YOUR OWN PACE</span>
-  </div>
-  <div class="today-progress">
-    <div class="progress-ring" [style.--progress]="progress() + '%'">
-      <div>
-        <strong>{{ progress() }}<small>%</small></strong
-        ><span>of today</span>
-      </div>
-    </div>
-    <div>
-      <strong>{{ tracker.done() }} of {{ tracker.scheduled().length }} completed</strong
-      ><span>{{
-        tracker.scheduled().length - tracker.done()
-          ? 'You’ve got this. One step at a time.'
-          : tracker.scheduled().length
-            ? 'A little victory. Take it in.'
-            : 'Your next small step starts here.'
+<div class="overview-top">
+  <section class="daily-focus" aria-label="Today's progress">
+    <div class="focus-top">
+      <span class="eyebrow">YOUR DAY, IN FOCUS</span
+      ><span class="focus-date">{{
+        pretty(tracker.today(), { month: 'short', day: 'numeric' })
       }}</span>
     </div>
-  </div>
-</section>
-<div class="stat-strip">
-  <div>
-    <span class="stat-icon orange"><app-icon name="flame" /></span>
-    <div>
-      <span>Active streaks</span
-      ><strong>{{ activeStreaks() }} <small>habits on a roll</small></strong>
+    <div class="focus-progress">
+      <h2>
+        {{ tracker.done() }}<span> / {{ tracker.scheduled().length }}</span>
+      </h2>
+      <div>
+        <strong>{{ tracker.done() }} of {{ tracker.scheduled().length }} completed</strong
+        ><span>{{ tracker.scheduled().length - tracker.done() }} left to make today count</span>
+      </div>
+      <span class="focus-percent">{{ progress() }}%</span>
     </div>
-  </div>
-  <div>
-    <span class="stat-icon purple"><app-icon name="target" /></span>
-    <div>
-      <span>Personal best</span><strong>{{ best() }} <small>successful periods</small></strong>
+    <app-progress [value]="progress()" />
+    <div class="focus-footer">
+      <span><i class="tiny-dot"></i>{{ activeStreaks() }} active streaks</span
+      ><span
+        >Best streak <strong>{{ best() }}</strong></span
+      ><button class="text-button" (click)="quick.set('progress')">
+        Mark daily progress <app-icon name="arrow" [size]="15" />
+      </button>
     </div>
-  </div>
-  <div>
-    <span class="stat-icon green"><app-icon name="chart" /></span>
-    <div>
-      <span>This week's consistency</span
-      ><strong>{{ weekly() }}<small>% of your targets</small></strong>
+  </section>
+  <section class="week-pulse">
+    <div class="section-heading">
+      <h2>This week's rhythm</h2>
+      <a routerLink="/statistics" aria-label="View habit insights"
+        ><app-icon name="up" [size]="18"
+      /></a>
     </div>
-  </div>
+    <div class="weekly-chart">
+      @for (day of days(); track day.date) {
+        <div class="chart-column" [class.current]="day.today" [class.future]="day.future">
+          <span class="chart-count">{{ day.future ? '—' : day.count }}</span>
+          <div class="bar-space">
+            <div
+              class="week-bar"
+              [style.height.%]="(day.count / max()) * 100"
+              [style.min-height.px]="day.count ? 8 : 3"
+            ></div>
+          </div>
+          <span>{{ day.label }}</span
+          ><i></i>
+        </div>
+      }
+    </div>
+    <p class="pulse-caption">
+      <strong>{{ weekly() }}%</strong> of this week's targets reached
+    </p>
+  </section>
 </div>
-<div class="dashboard-columns">
-  <div class="dashboard-main">
+<div class="capture-bar">
+  <span>Quick capture</span
+  ><button (click)="quick.set('income')"><app-icon name="plus" [size]="15" />Income</button
+  ><button (click)="quick.set('expense')"><app-icon name="plus" [size]="15" />Expense</button
+  ><button (click)="quick.set('learning')"><app-icon name="plus" [size]="15" />Learning</button
+  ><a routerLink="/planner"><app-icon name="check" [size]="15" />Task</a>
+</div>
+<div class="overview-body">
+  <div class="overview-primary">
     <section class="panel activities-panel">
       <div class="section-heading">
         <div>
+          <span class="eyebrow">BUILD YOUR MOMENTUM</span>
           <h2>
             Today's intentions <span class="count-badge">{{ tracker.scheduled().length }}</span>
           </h2>
-          <p>Mark today yourself, or record a past day. A new day starts at local midnight.</p>
         </div>
         <button class="text-button" (click)="create.set(true)">
           <app-icon name="plus" [size]="16" />Add new
@@ -138,100 +103,124 @@
         <app-activity-card [activity]="a" />
       } @empty {
         <app-empty
-          [title]="tracker.active().length ? 'A little breathing room.' : 'Big things start small.'"
+          [title]="tracker.active().length ? 'You’re all caught up.' : 'Build a little momentum.'"
           [description]="
             tracker.active().length
-              ? 'Nothing here right now. Enjoy the pause, or add a new intention.'
-              : 'Read a page. Take a walk. Pick one thing that matters to you, and let’s help it grow.'
+              ? 'There are no activities in this view. Take a moment to enjoy your progress.'
+              : 'Start with one small habit. A chapter, a walk, a few minutes of focus.'
           "
           action="Create an activity"
           (activate)="create.set(true)"
         />
       }
       <a routerLink="/activities" class="panel-footer"
-        >Explore all your activities <app-icon name="arrow" [size]="16"
+        >All streaks & history <app-icon name="arrow" [size]="16"
       /></a>
     </section>
-    <section class="panel weekly-panel">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow">THE BIGGER PICTURE</span>
-          <h2>Your week, in small wins</h2>
-        </div>
-        <a class="text-button" routerLink="/statistics"
-          >View insights <app-icon name="up" [size]="16"
-        /></a>
-      </div>
-      <div class="weekly-chart">
-        @for (day of days(); track day.date) {
-          <div class="chart-column" [class.current]="day.today" [class.future]="day.future">
-            <span class="chart-count">{{ day.future ? '—' : day.count }}</span>
-            <div class="bar-space">
-              <div
-                class="week-bar"
-                [style.height.%]="(day.count / max()) * 100"
-                [style.min-height.px]="day.count ? 8 : 4"
-              ></div>
-            </div>
-            <span>{{ day.label }}</span
-            ><i></i>
-          </div>
-        }
-      </div>
-      <div class="chart-caption">
-        <span><span class="tiny-dot"></span> Completed activities</span
-        ><span>Consistency over perfection.</span>
-      </div>
-    </section>
+    <app-record-feed
+      title="On your horizon"
+      [items]="deadlines()"
+      actionPath="/planner"
+      actionLabel="Open planner"
+      [deadline]="true"
+      [today]="tracker.today()"
+      emptyTitle="No deadlines on your horizon."
+      emptyDescription="Plan your next step whenever you're ready."
+    />
+    <app-record-feed
+      title="Recent activity"
+      [items]="recentActivity()"
+      actionPath="/reports"
+      actionLabel="Life reports"
+      emptyTitle="Your story starts here."
+      emptyDescription="Check-ins, learning and transactions will appear as you record them."
+    />
     <app-daily-note [date]="tracker.today()" />
   </div>
-  <aside class="dashboard-aside">
-    <section class="panel spaced-panel upcoming-list">
-      <span class="eyebrow">ON YOUR HORIZON</span>
-      <h2>Upcoming deadlines</h2>
-      @for (item of deadlines(); track item.id) {
-        <a class="record-row" [routerLink]="item.path"
+  <aside class="overview-secondary">
+    <section class="money-preview">
+      <div class="section-heading">
+        <span class="eyebrow">YOUR MONEY · {{ pretty(tracker.today(), { month: 'short' }) }}</span
+        ><a routerLink="/finance" aria-label="Open finance"><app-icon name="up" [size]="18" /></a>
+      </div>
+      <span class="money-label">Available balance</span
+      ><strong class="money-balance">{{ cash(finance().available) }}</strong>
+      <p>From your tracked accounts, after savings reserves.</p>
+      <div class="money-preview-flows">
+        <div>
+          <span>Income</span><strong>{{ cash(finance().income) }}</strong>
+        </div>
+        <div>
+          <span>Expenses</span><strong>{{ cash(finance().expenses) }}</strong>
+        </div>
+      </div>
+      <a routerLink="/finance" [queryParams]="{ tab: 'Savings' }" class="savings-preview"
+        ><span>Total savings</span
+        ><strong>{{ cash(finance().savings) }} <app-icon name="right" [size]="14" /></strong
+      ></a>
+    </section>
+    <section class="growth-preview">
+      <div class="section-heading">
+        <h2>Keep growing</h2>
+        <app-icon name="sprout" [size]="18" />
+      </div>
+      <a routerLink="/learning" class="growth-line"
+        ><span class="growth-icon"><app-icon name="sprout" [size]="18" /></span>
+        <div>
+          <strong
+            >{{ learningHours() }}
+            <small>{{ learningHours() === 1 ? 'hour' : 'hours' }}</small></strong
+          ><span>Learning this week</span>
+        </div>
+        <app-icon name="right" [size]="15" /></a
+      ><a routerLink="/jobs" class="growth-line"
+        ><span class="growth-icon"><app-icon name="target" [size]="18" /></span>
+        <div>
+          <strong>{{ monthlyJobs() }} <small>applications</small></strong
+          ><span>This month's opportunities</span>
+        </div>
+        <app-icon name="right" [size]="15"
+      /></a>
+    </section>
+    <section class="goals-preview">
+      <div class="section-heading">
+        <h2>
+          Goals in motion <span class="count-badge">{{ activeGoals() }}</span>
+        </h2>
+        <a routerLink="/goals" aria-label="Open goals"><app-icon name="up" [size]="17" /></a>
+      </div>
+      @for (g of previewGoals(); track g.id) {
+        <a routerLink="/goals" class="goal-preview"
           ><div>
-            <strong>{{ item.title }}</strong
-            ><small
-              >{{ item.date }} · {{ item.date < tracker.today() ? 'Overdue' : 'Upcoming' }}</small
-            >
+            <strong>{{ g.title }}</strong
+            ><span>{{ goalProgress(g) }}%</span>
           </div>
-          <app-icon name="right" [size]="16"
+          <app-progress [value]="goalProgress(g)"
         /></a>
       } @empty {
-        <p class="helper">No pending deadlines. A little room to breathe.</p>
+        <p class="helper">
+          Give your next chapter a direction. <a routerLink="/goals">Set a goal ↗</a>
+        </p>
       }
     </section>
-
     <section class="panel calendar-panel">
       <div class="section-heading">
         <h2>Your consistency</h2>
-        <app-icon name="calendar" [size]="18" />
-      </div>
-      <app-calendar (select)="router.navigate(['/calendar'], { queryParams: { date: $event } })" />
-      <div class="calendar-legend">
-        <span><i class="complete-dot"></i>Completed</span><span><i class="today-dot"></i>Today</span
-        ><a routerLink="/calendar" aria-label="Open calendar history"
+        <a routerLink="/calendar" aria-label="Open calendar history"
           ><app-icon name="up" [size]="17"
         /></a>
       </div>
+      <app-calendar (select)="router.navigate(['/calendar'], { queryParams: { date: $event } })" />
+      <div class="calendar-legend">
+        <span><i class="complete-dot"></i>Completed</span
+        ><span><i class="today-dot"></i>Today</span>
+      </div>
     </section>
-    <section class="note-panel">
-      <span class="quote-mark">“</span>
-      <p>You don't rise to the level of your goals. You fall to the level of your systems.</p>
-      <div><span>JAMES CLEAR</span><app-icon name="leaf" [size]="24" /></div>
-    </section>
-    <div class="local-note">
-      <app-icon name="sprout" [size]="18" />
-      <p>Just you and your progress.<br /><span>Saved in this browser. No account needed.</span></p>
-    </div>
   </aside>
 </div>
 @if (create()) {
   <app-activity-form (close)="create.set(false)" />
 }
-
 @if (quick(); as mode) {
   <app-quick-entry [mode]="mode" (close)="quick.set(null)" />
 }

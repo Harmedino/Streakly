@@ -19,63 +19,70 @@ export type FormValues = Record<string, string | number | boolean>;
   imports: [FormsModule, Dialog],
   template: `<app-dialog [title]="title()" (close)="close.emit()"
     ><form (ngSubmit)="submit()" #form="ngForm">
-      @for (field of fields(); track field.key) {
-        <label [class.checkbox-label]="field.type === 'checkbox'"
-          >{{ field.label }}
-          @switch (field.type) {
-            @case ('textarea') {
-              <textarea
-                [name]="field.key"
-                [attr.aria-label]="field.label"
-                [attr.aria-describedby]="field.hint ? 'entry-hint-' + field.key : null"
-                [(ngModel)]="values[field.key]"
-                [required]="!!field.required"
-                [maxlength]="field.maxLength ?? 5000"
-                rows="3"
-              ></textarea>
+      <div class="entry-fields">
+        @for (field of fields(); track field.key) {
+          <label
+            [class.checkbox-label]="field.type === 'checkbox'"
+            [class.entry-wide]="
+              !['date', 'month', 'number'].includes(field.type || 'text') || field.key === 'amount'
+            "
+            [class.entry-amount]="field.key === 'amount'"
+            >{{ field.label }}
+            @switch (field.type) {
+              @case ('textarea') {
+                <textarea
+                  [name]="field.key"
+                  [attr.aria-label]="field.label"
+                  [attr.aria-describedby]="field.hint ? 'entry-hint-' + field.key : null"
+                  [(ngModel)]="values[field.key]"
+                  [required]="!!field.required"
+                  [maxlength]="field.maxLength ?? 5000"
+                  rows="3"
+                ></textarea>
+              }
+              @case ('select') {
+                <select
+                  [name]="field.key"
+                  [attr.aria-label]="field.label"
+                  [attr.aria-describedby]="field.hint ? 'entry-hint-' + field.key : null"
+                  [(ngModel)]="values[field.key]"
+                  [required]="!!field.required"
+                >
+                  @for (option of field.options; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              }
+              @case ('checkbox') {
+                <input
+                  type="checkbox"
+                  [name]="field.key"
+                  [attr.aria-label]="field.label"
+                  [attr.aria-describedby]="field.hint ? 'entry-hint-' + field.key : null"
+                  [(ngModel)]="values[field.key]"
+                />
+              }
+              @default {
+                <input
+                  [type]="field.type ?? 'text'"
+                  [name]="field.key"
+                  [attr.aria-label]="field.label"
+                  [attr.aria-describedby]="field.hint ? 'entry-hint-' + field.key : null"
+                  [(ngModel)]="values[field.key]"
+                  [required]="!!field.required"
+                  [maxlength]="field.maxLength ?? 200"
+                  [attr.min]="field.min ?? null"
+                  [attr.max]="field.max ?? null"
+                  [attr.step]="field.step ?? 'any'"
+                />
+              }
             }
-            @case ('select') {
-              <select
-                [name]="field.key"
-                [attr.aria-label]="field.label"
-                [attr.aria-describedby]="field.hint ? 'entry-hint-' + field.key : null"
-                [(ngModel)]="values[field.key]"
-                [required]="!!field.required"
-              >
-                @for (option of field.options; track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
-                }
-              </select>
+            @if (field.hint) {
+              <span class="helper" [id]="'entry-hint-' + field.key">{{ field.hint }}</span>
             }
-            @case ('checkbox') {
-              <input
-                type="checkbox"
-                [name]="field.key"
-                [attr.aria-label]="field.label"
-                [attr.aria-describedby]="field.hint ? 'entry-hint-' + field.key : null"
-                [(ngModel)]="values[field.key]"
-              />
-            }
-            @default {
-              <input
-                [type]="field.type ?? 'text'"
-                [name]="field.key"
-                [attr.aria-label]="field.label"
-                [attr.aria-describedby]="field.hint ? 'entry-hint-' + field.key : null"
-                [(ngModel)]="values[field.key]"
-                [required]="!!field.required"
-                [maxlength]="field.maxLength ?? 200"
-                [attr.min]="field.min ?? null"
-                [attr.max]="field.max ?? null"
-                [attr.step]="field.step ?? 'any'"
-              />
-            }
-          }
-          @if (field.hint) {
-            <span class="helper" [id]="'entry-hint-' + field.key">{{ field.hint }}</span>
-          }
-        </label>
-      }
+          </label>
+        }
+      </div>
       @if (error()) {
         <p class="error" role="alert">{{ error() }}</p>
       }

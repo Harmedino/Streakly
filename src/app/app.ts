@@ -10,7 +10,16 @@ import {
   HostListener,
   viewChild,
 } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import {
+  NavigationStart,
+  NavigationCancel,
+  NavigationError,
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
 import { TrackerService } from './services/tracker';
 import { Icon } from './shared/icon';
 import { Onboarding } from './shared/onboarding';
@@ -26,13 +35,39 @@ export class App {
     { path: '/', label: 'Overview', icon: 'dashboard' },
     { path: '/activities', label: 'My Streaks', icon: 'flame' },
     { path: '/planner', label: 'Daily Planner', icon: 'check' },
-    { path: '/learning', label: 'Learning Journal', icon: 'sprout' },
-    { path: '/jobs', label: 'Job Applications', icon: 'target' },
-    { path: '/finance', label: 'Finance', icon: 'chart' },
+    { path: '/learning', label: 'Learning Journal', icon: 'book' },
+    { path: '/jobs', label: 'Job Applications', icon: 'briefcase' },
+    { path: '/finance', label: 'Finance', icon: 'wallet' },
     { path: '/goals', label: 'Goals', icon: 'target' },
-    { path: '/journal', label: 'Personal Journal', icon: 'leaf' },
+    { path: '/journal', label: 'Personal Journal', icon: 'notebook' },
     { path: '/reports', label: 'Reports', icon: 'chart' },
   ];
+  router = inject(Router);
+  currentPath = signal(this.router.url);
+  routeLoading = signal(false);
+  pageTitle = computed(() => {
+    const path = this.currentPath().split('?')[0];
+    return (
+      this.navigation.find((n) => n.path === path)?.label ??
+      (path.startsWith('/activities/')
+        ? 'Activity details'
+        : path === '/calendar'
+          ? 'Calendar'
+          : path === '/statistics'
+            ? 'Habit insights'
+            : 'Settings')
+    );
+  });
+  private navigationSubscription = this.router.events.subscribe((event) => {
+    if (event instanceof NavigationStart) this.routeLoading.set(true);
+    if (event instanceof NavigationEnd) this.currentPath.set(event.urlAfterRedirects);
+    if (
+      event instanceof NavigationEnd ||
+      event instanceof NavigationCancel ||
+      event instanceof NavigationError
+    )
+      this.routeLoading.set(false);
+  });
   tracker = inject(TrackerService);
   todoCount = computed(() => this.tracker.data().todos?.filter((t) => !t.done).length ?? 0);
   pwa = inject(PwaService);
@@ -73,6 +108,7 @@ export class App {
     }
   }
   ngOnDestroy() {
+    this.navigationSubscription.unsubscribe();
     document.body.classList.remove('mobile-nav-open');
   }
   constructor() {

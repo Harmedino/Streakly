@@ -1,0 +1,79 @@
+.streak-overview {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  margin-bottom: 26px;
+}
+.streak-overview > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.streak-overview > div > strong {
+  font-size: 25px;
+  font-weight: 550;
+  letter-spacing: -0.8px;
+}
+.streak-overview > div > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.streak-overview .streak-overview-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  background: #fcf1e5;
+  color: #9a5f24;
+}
+.streak-overview > div:last-child {
+  margin-left: auto;
+  gap: 20px;
+}
+.compact-toggle {
+  float: right;
+  margin-top: -55px;
+  font-size: 11px;
+}
+@media (max-width: 1100px) {
+  .streak-overview {
+    flex-wrap: wrap;
+    gap: 16px 28px;
+  }
+  .streak-overview > div:last-child {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 600px) {
+  .streak-overview {
+    padding: 18px;
+    gap: 12px 22px;
+  }
+  .streak-overview > div > strong {
+    font-size: 22px;
+  }
+  .streak-overview > div > span {
+    font-size: 11px;
+  }
+  .streak-overview .streak-overview-icon {
+    display: none;
+  }
+  .streak-overview > div:last-child {
+    gap: 18px;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+  }
+  .streak-overview .text-button {
+    font-size: 11px;
+  }
+  .compact-toggle {
+    float: none;
+    margin: 0 0 14px;
+  }
+}

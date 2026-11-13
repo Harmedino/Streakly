@@ -1,6 +1,6 @@
 <div class="page-heading">
   <div>
-    <span class="eyebrow">MONEY, WITH INTENTION</span>
+    <span class="eyebrow">PERSONAL FINANCE</span>
     <h1>Your finances<span class="greeting-dot">.</span></h1>
     <p>Know what comes in, what goes out, and what is truly available.</p>
   </div>
@@ -35,13 +35,18 @@
     <app-icon name="download" [size]="16" />Export CSV
   </button>
 </div>
-<div class="life-stats finance-stats">
+<div
+  class="life-stats finance-stats"
+  [class.finance-overview]="tab() === 'Overview' || tab() === 'Reports'"
+>
   <div>
-    <span>Total income</span><strong>{{ cash(totals().income) }}</strong
+    <span><app-icon name="incoming" [size]="15" />Total income</span
+    ><strong>{{ cash(totals().income) }}</strong
     ><small>{{ month() }}</small>
   </div>
   <div>
-    <span>Total expenses</span><strong>{{ cash(totals().expenses) }}</strong
+    <span><app-icon name="up" [size]="15" />Total expenses</span
+    ><strong>{{ cash(totals().expenses) }}</strong
     ><small>Transfers excluded</small>
   </div>
   <div>
@@ -49,7 +54,8 @@
     ><small>Income minus expenses</small>
   </div>
   <div>
-    <span>Available balance</span><strong>{{ cash(totals().available) }}</strong
+    <span class="balance-eyebrow"><app-icon name="wallet" [size]="18" />Available balance</span
+    ><strong>{{ cash(totals().available) }}</strong
     ><small>Tracked spendable accounts minus reserved savings</small>
   </div>
   <div>
@@ -70,7 +76,7 @@
 }
 @if (tab() === 'Overview' || tab() === 'Reports') {
   @if (!life.data().accounts.length) {
-    <section class="panel">
+    <section class="panel finance-setup">
       <app-empty
         title="Start with what you already have."
         description="Add an account and its actual opening balance. Income minus expenses alone cannot tell us your available money."
@@ -79,7 +85,29 @@
       />
     </section>
   }
-  <div class="life-columns">
+  @if (tab() === 'Overview' && life.data().accounts.length) {
+    <section class="account-overview">
+      <div class="section-heading">
+        <h2>Your accounts</h2>
+        <button class="text-button" (click)="tab.set('Accounts')">
+          Manage accounts <app-icon name="right" [size]="15" />
+        </button>
+      </div>
+      <div class="account-rail">
+        @for (a of life.data().accounts; track a.id) {
+          <button (click)="tab.set('Accounts')">
+            <span class="account-rail-icon"><app-icon name="wallet" [size]="18" /></span>
+            <div>
+              <span>{{ a.name }}</span
+              ><strong>{{ cash(balance(a)) }}</strong>
+            </div>
+            <small>{{ a.type }}</small>
+          </button>
+        }
+      </div>
+    </section>
+  }
+  <div class="life-columns finance-charts">
     <section class="panel spaced-panel">
       <div class="section-heading">
         <div>
@@ -103,14 +131,17 @@
                 [attr.title]="m.month + ' expenses ' + cash(m.expenses)"
               ></span>
             </div>
-            <small>{{ m.month.slice(5) }}</small
+            <small>{{ pretty(m.month + '-01', { month: 'short' }) }}</small
             ><span class="sr-only"
               >{{ m.month }}: income {{ cash(m.income) }}, expenses {{ cash(m.expenses) }}</span
             >
           </div>
         }
       </div>
-      <div class="chart-caption"><span>● Income</span><span>○ Expenses</span></div>
+      <div class="chart-caption">
+        <span><i class="legend-square income-bar"></i>Income</span
+        ><span><i class="legend-square expense-bar"></i>Expenses</span>
+      </div>
     </section>
     <section class="panel spaced-panel">
       <span class="eyebrow">A LITTLE PERSPECTIVE</span>
@@ -194,8 +225,23 @@
   <section class="panel spaced-panel">
     <h2>Recent transactions</h2>
     @for (t of recent(); track t.id) {
-      <div class="record-row">
-        <div>
+      <div class="record-row transaction-row">
+        <span
+          class="transaction-icon"
+          [class.is-income]="t.kind === 'income'"
+          [class.is-expense]="t.kind === 'expense'"
+          aria-hidden="true"
+          ><app-icon
+            [name]="
+              t.kind === 'income'
+                ? 'incoming'
+                : t.kind === 'expense'
+                  ? categoryIcon(t.category)
+                  : 'arrow'
+            "
+            [size]="17"
+        /></span>
+        <div class="transaction-copy">
           <strong>{{ t.source || t.category }}</strong
           ><small>{{ t.kind }} · {{ pretty(t.date) }} · {{ accountName(t.accountId) }}</small>
         </div>
@@ -343,8 +389,11 @@
   </div>
   <div class="module-grid">
     @for (a of life.data().accounts; track a.id) {
-      <section class="panel spaced-panel">
-        <span class="eyebrow">{{ a.type }}</span>
+      <section class="panel spaced-panel account-card">
+        <div class="account-card-top">
+          <span class="account-emblem"><app-icon name="wallet" [size]="20" /></span
+          ><span class="status-pill">{{ a.type }}</span>
+        </div>
         <h2>{{ a.name }}</h2>
         <strong class="large-value">{{ cash(balance(a)) }}</strong>
         <p class="helper">
@@ -393,7 +442,8 @@
   </div>
   <div class="module-grid">
     @for (b of budgets(); track b.id) {
-      <section class="panel spaced-panel">
+      <section class="panel spaced-panel budget-card">
+        <span class="eyebrow">MONTHLY LIMIT · {{ b.month }}</span>
         <h2>{{ b.category || 'Overall monthly budget' }}</h2>
         <strong class="large-value">{{ cash(b.amount - used(b)) }}</strong>
         <p class="helper">
@@ -437,7 +487,8 @@
   </div>
   <div class="module-grid">
     @for (g of life.data().savingsGoals; track g.id) {
-      <section class="panel spaced-panel">
+      <section class="panel spaced-panel savings-card">
+        <span class="eyebrow"><app-icon name="target" [size]="15" />SAVINGS GOAL</span>
         <h2>{{ g.name }}</h2>
         <strong class="large-value">{{ cash(saved(g.id)) }}</strong>
         <p class="helper">

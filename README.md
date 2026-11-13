@@ -158,3 +158,13 @@ STREAKLY_TEST_URL=http://127.0.0.1:4201 npm run test:e2e
 ```
 
 Finance and life tests cover exact decimal conversion, balances, unassigned flows, transfers, savings allocation/withdrawal rules, recurring month boundaries/deduplication, CSV escaping, linked-learning reconciliation, migrations, backup failures, resets, goal events, persistence, and responsive multi-module workflows.
+
+## Workspace design system
+
+The UI uses a neutral canvas and a restrained violet accent in light and dark themes. Shared color, spacing, type, border and shadow tokens live in `src/styles/_tokens.scss`; reusable controls and surface styles are defined in `src/styles/_workspace.scss`. Feature layouts are in their own SCSS files and remain lazy loaded. No UI framework or new runtime dependency was added. Obsolete decorative styles and superseded declarations were removed.
+
+The new Overview leads with daily progress, weekly rhythm and quick capture, then separates streaks/priorities/recent history from finance, learning and goals. Finance prioritizes tracked balances, account summaries and readable transaction history; tables become stacked transaction rows on phones. Learning uses a chronological timeline, applications a simple status pipeline, goals milestone progress, reflections a date rail, and the planner a task agenda with a capture panel. Settings has section navigation for profile, appearance, categories, reminders, install, backup and reset.
+
+At mobile/tablet widths, a persistent Today/Planner/Finance/More navigation complements the complete focus-trapped menu. Dialogs use a scrollable sheet with visible actions, forms preserve accessible labels, and reduced-motion preferences suppress animation. Page transitions intentionally avoid transforms on ancestors of fixed dialogs. The thin route-loading indicator reflects actual router navigation. Storage schemas, keys and business rules are unchanged by this redesign.
+
+`e2e/design.spec.ts` renders every route (including activity details, calendar and insights), all seven finance sections, and a record form at 1440, 768, 390 and 320 pixels in both themes. It checks overflow, dialog viewport placement, JavaScript errors and unchanged stored records. Visual captures use isolated test fixtures only; the app continues to start empty. Screenshots are saved under `/tmp/streakly-redesign` during these checks.

@@ -1,1 +1,31 @@
-{"id":"/","name":"Streakly — Small actions. Big consistency.","short_name":"Streakly","description":"Your personal space to build habits, one small action at a time.","start_url":"/","scope":"/","display":"standalone","background_color":"#f8f9f5","theme_color":"#f8f9f5","icons":[{"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"},{"src":"favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
+{
+  "id": "/",
+  "name": "Streakly \u2014 Small actions. Big consistency.",
+  "short_name": "Streakly",
+  "description": "Your personal workspace for habits, money, learning and growth.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8fa",
+  "theme_color": "#f7f8fa",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

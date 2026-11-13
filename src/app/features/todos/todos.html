@@ -1,185 +1,203 @@
 <div class="page-heading">
   <div>
-    <span class="eyebrow">A LITTLE LESS ON YOUR MIND</span>
+    <span class="eyebrow">PLAN WITH INTENTION</span>
     <h1>Daily planner<span class="greeting-dot">.</span></h1>
-    <p>A place for the little things you want to get done.</p>
+    <p>A clear head. A considered day. One task at a time.</p>
   </div>
   <span class="pill">{{ remaining() }} {{ remaining() === 1 ? 'task' : 'tasks' }} to go</span>
 </div>
-<section class="panel todo-composer">
-  <form (ngSubmit)="add()" #form="ngForm">
-    <label class="task-name"
-      >What needs doing?<input
-        name="title"
-        [(ngModel)]="title"
-        required
-        maxlength="200"
-        placeholder="e.g. Book that appointment…" /></label
-    ><label class="task-date"
-      >Due date <span class="optional">optional</span
-      ><input
-        type="date"
-        name="dueDate"
-        [(ngModel)]="dueDate"
-        min="1900-01-01"
-        max="2200-12-31" /></label
-    ><label class="task-date"
-      >Scheduled day<input type="date" name="scheduledDate" [(ngModel)]="scheduledDate" /></label
-    ><label class="task-date"
-      >Priority<select name="priority" [(ngModel)]="priority">
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
-      </select></label
-    ><button class="btn primary" type="submit" [disabled]="form.invalid || !title.trim()">
-      <app-icon name="plus" [size]="17" />Add task
-    </button>
-  </form>
-  @if (error) {
-    <p class="error" role="alert">{{ error }}</p>
-  }
-</section>
-<div class="planner-scope">
-  <label
-    >Show tasks<select
-      aria-label="Planner date filter"
-      [ngModel]="scope()"
-      (ngModelChange)="scope.set($event)"
-    >
-      <option value="all">All dates</option>
-      <option value="today">Today</option>
-      <option value="overdue">Missed / overdue</option>
-    </select></label
-  >
-  <p class="helper">
-    Today: {{ todayTasks().filter(isDoneTask).length }} of {{ todayTasks().length }} complete ·
-    {{ dailyProgress() }}%
-  </p>
-</div>
-<section class="panel todo-list">
-  <div class="todo-summary">
-    <div>
-      <h2>One thing at a time.</h2>
-      <p>{{ done() }} of {{ tasks().length }} tasks completed</p>
-    </div>
-    <span>{{ progress() }}%</span>
-  </div>
-  <div class="todo-progress"><app-progress [value]="progress()" /></div>
-  <div class="todo-toolbar">
-    <div class="tabs">
-      <button [class.active]="filter() === 'pending'" (click)="filter.set('pending')">
-        To do <span>{{ remaining() }}</span></button
-      ><button [class.active]="filter() === 'all'" (click)="filter.set('all')">
-        All <span>{{ tasks().length }}</span></button
-      ><button [class.active]="filter() === 'done'" (click)="filter.set('done')">
-        Done <span>{{ done() }}</span>
-      </button>
-    </div>
-    <button class="text-button" [disabled]="!done()" (click)="clearing.set(true)">
-      Clear completed
-    </button>
-  </div>
-  @for (task of list(); track task.id) {
-    <article class="todo-row" [class.todo-done]="task.done">
-      @if (editing()?.id === task.id) {
-        <form class="todo-edit" (ngSubmit)="save()" #editForm="ngForm">
-          <label
-            >Task name<input
-              name="editTitle"
-              [(ngModel)]="editTitle"
-              required
-              maxlength="200" /></label
-          ><label
-            >Task due date<input
-              type="date"
-              name="editDate"
-              [(ngModel)]="editDueDate"
-              min="1900-01-01"
-              max="2200-12-31"
-          /></label>
-          <label
-            >Reschedule task<input
-              type="date"
-              name="editSchedule"
-              [(ngModel)]="editScheduledDate" /></label
-          ><label
-            >Task priority<select name="editPriority" [(ngModel)]="editPriority">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select></label
-          >
-          <div class="todo-edit-actions">
-            <button class="btn" type="button" (click)="editing.set(null)">Cancel</button
-            ><button class="btn primary" [disabled]="editForm.invalid || !editTitle.trim()">
-              Save task
-            </button>
-          </div>
-          @if (editError) {
-            <p class="error" role="alert">{{ editError }}</p>
-          }
-        </form>
-      } @else {
-        <button
-          class="completion-button"
-          [class.checked]="task.done"
-          [attr.aria-label]="(task.done ? 'Undo task: ' : 'Complete task: ') + task.title"
-          [attr.aria-pressed]="task.done"
-          (click)="tracker.toggleTodo(task.id)"
-        >
-          <app-icon name="check" [size]="18" />
+<div class="planner-workspace">
+  <aside class="planner-capture">
+    <section class="panel todo-composer">
+      <div class="capture-heading">
+        <app-icon name="plus" [size]="18" />
+        <h2>Capture a task</h2>
+      </div>
+      <p class="helper">Get it out of your head and into your day.</p>
+      <form (ngSubmit)="add()" #form="ngForm">
+        <label class="task-name"
+          >What needs doing?<input
+            name="title"
+            [(ngModel)]="title"
+            required
+            maxlength="200"
+            placeholder="e.g. Book that appointment…" /></label
+        ><label class="task-date"
+          >Due date <span class="optional">optional</span
+          ><input
+            type="date"
+            name="dueDate"
+            [(ngModel)]="dueDate"
+            min="1900-01-01"
+            max="2200-12-31" /></label
+        ><label class="task-date"
+          >Scheduled day<input
+            type="date"
+            name="scheduledDate"
+            [(ngModel)]="scheduledDate" /></label
+        ><label class="task-date"
+          >Priority<select name="priority" [(ngModel)]="priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select></label
+        ><button class="btn primary" type="submit" [disabled]="form.invalid || !title.trim()">
+          <app-icon name="plus" [size]="17" />Add task
         </button>
-        <div class="todo-text">
-          <h3>{{ task.title }}</h3>
-          <span class="status-pill">{{ task.priority || 'medium' }} priority</span>
-          @if (task.scheduledDate) {
-            <small class="helper">Planned {{ task.scheduledDate }}</small>
-          }
-          @if (task.dueDate) {
-            <span class="todo-due" [class.overdue]="!task.done && task.dueDate < tracker.today()"
-              ><app-icon name="calendar" [size]="13" />{{
-                task.dueDate === tracker.today()
-                  ? 'Due today'
-                  : pretty(task.dueDate, { day: 'numeric', month: 'short', year: 'numeric' })
-              }}
-              @if (!task.done && task.dueDate < tracker.today()) {
-                · Overdue
-              }
-            </span>
-          }
+      </form>
+      @if (error) {
+        <p class="error" role="alert">{{ error }}</p>
+      }
+    </section>
+  </aside>
+  <div class="planner-agenda">
+    <div class="planner-scope">
+      <label
+        >Show tasks<select
+          aria-label="Planner date filter"
+          [ngModel]="scope()"
+          (ngModelChange)="scope.set($event)"
+        >
+          <option value="all">All dates</option>
+          <option value="today">Today</option>
+          <option value="overdue">Missed / overdue</option>
+        </select></label
+      >
+      <p class="helper">
+        Today: {{ todayTasks().filter(isDoneTask).length }} of {{ todayTasks().length }} complete ·
+        {{ dailyProgress() }}%
+      </p>
+    </div>
+    <section class="panel todo-list">
+      <div class="todo-summary">
+        <div>
+          <h2>Your task list</h2>
+          <p>{{ done() }} of {{ tasks().length }} tasks completed</p>
         </div>
-        <div class="todo-actions">
-          <button
-            class="text-button"
-            [attr.aria-label]="'Edit task: ' + task.title"
-            (click)="edit(task)"
-          >
-            Edit</button
-          ><button
-            class="icon-button"
-            [attr.aria-label]="'Delete task: ' + task.title"
-            (click)="deleting.set(task)"
-          >
-            <app-icon name="x" [size]="17" />
+        <span>{{ progress() }}%</span>
+      </div>
+      <div class="todo-progress"><app-progress [value]="progress()" /></div>
+      <div class="todo-toolbar">
+        <div class="tabs">
+          <button [class.active]="filter() === 'pending'" (click)="filter.set('pending')">
+            To do <span>{{ remaining() }}</span></button
+          ><button [class.active]="filter() === 'all'" (click)="filter.set('all')">
+            All <span>{{ tasks().length }}</span></button
+          ><button [class.active]="filter() === 'done'" (click)="filter.set('done')">
+            Done <span>{{ done() }}</span>
           </button>
         </div>
+        <button class="text-button" [disabled]="!done()" (click)="clearing.set(true)">
+          Clear completed
+        </button>
+      </div>
+      @for (task of list(); track task.id) {
+        <article class="todo-row" [class.todo-done]="task.done">
+          @if (editing()?.id === task.id) {
+            <form class="todo-edit" (ngSubmit)="save()" #editForm="ngForm">
+              <label
+                >Task name<input
+                  name="editTitle"
+                  [(ngModel)]="editTitle"
+                  required
+                  maxlength="200" /></label
+              ><label
+                >Task due date<input
+                  type="date"
+                  name="editDate"
+                  [(ngModel)]="editDueDate"
+                  min="1900-01-01"
+                  max="2200-12-31"
+              /></label>
+              <label
+                >Reschedule task<input
+                  type="date"
+                  name="editSchedule"
+                  [(ngModel)]="editScheduledDate" /></label
+              ><label
+                >Task priority<select name="editPriority" [(ngModel)]="editPriority">
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select></label
+              >
+              <div class="todo-edit-actions">
+                <button class="btn" type="button" (click)="editing.set(null)">Cancel</button
+                ><button class="btn primary" [disabled]="editForm.invalid || !editTitle.trim()">
+                  Save task
+                </button>
+              </div>
+              @if (editError) {
+                <p class="error" role="alert">{{ editError }}</p>
+              }
+            </form>
+          } @else {
+            <button
+              class="completion-button"
+              [class.checked]="task.done"
+              [attr.aria-label]="(task.done ? 'Undo task: ' : 'Complete task: ') + task.title"
+              [attr.aria-pressed]="task.done"
+              (click)="tracker.toggleTodo(task.id)"
+            >
+              <app-icon name="check" [size]="18" />
+            </button>
+            <div class="todo-text">
+              <h3>{{ task.title }}</h3>
+              <span class="status-pill" [attr.data-priority]="task.priority || 'medium'"
+                >{{ task.priority || 'medium' }} priority</span
+              >
+              @if (task.scheduledDate) {
+                <small class="helper">Planned {{ task.scheduledDate }}</small>
+              }
+              @if (task.dueDate) {
+                <span
+                  class="todo-due"
+                  [class.overdue]="!task.done && task.dueDate < tracker.today()"
+                  ><app-icon name="calendar" [size]="13" />{{
+                    task.dueDate === tracker.today()
+                      ? 'Due today'
+                      : pretty(task.dueDate, { day: 'numeric', month: 'short', year: 'numeric' })
+                  }}
+                  @if (!task.done && task.dueDate < tracker.today()) {
+                    · Overdue
+                  }
+                </span>
+              }
+            </div>
+            <div class="todo-actions">
+              <button
+                class="text-button"
+                [attr.aria-label]="'Edit task: ' + task.title"
+                (click)="edit(task)"
+              >
+                Edit</button
+              ><button
+                class="icon-button"
+                [attr.aria-label]="'Delete task: ' + task.title"
+                (click)="deleting.set(task)"
+              >
+                <app-icon name="x" [size]="17" />
+              </button>
+            </div>
+          }
+        </article>
+      } @empty {
+        <app-empty
+          [title]="tasks().length ? 'A little breathing room.' : 'Make a little mental space.'"
+          [description]="
+            tasks().length
+              ? 'No tasks in this view. Take a breath, or add your next small step.'
+              : 'Add your first task above. Your list stays private and saved in this browser.'
+          "
+        />
       }
-    </article>
-  } @empty {
-    <app-empty
-      [title]="tasks().length ? 'A little breathing room.' : 'Make a little mental space.'"
-      [description]="
-        tasks().length
-          ? 'No tasks in this view. Take a breath, or add your next small step.'
-          : 'Add your first task above. Your list stays private and saved in this browser.'
-      "
-    />
-  }
-</section>
-<p class="helper todo-footnote">
-  Tasks are saved with your Streakly backup. They do not affect your habit streaks or consistency
-  score.
-</p>
+    </section>
+    <p class="helper todo-footnote">
+      Tasks are saved with your Streakly backup. They do not affect your habit streaks or
+      consistency score.
+    </p>
+  </div>
+</div>
 @if (deleting(); as task) {
   <app-confirm
     title="Remove this task?"

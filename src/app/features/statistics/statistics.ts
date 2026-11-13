@@ -12,9 +12,9 @@ import { dailyCounts, rangeScore, weeklyReflection } from '../../core/insights';
   imports: [RouterLink, Icon, Heatmap, EmptyState, Progress],
   template: `<div class="page-heading">
       <div>
-        <span class="eyebrow">ZOOM OUT. SEE YOUR GROWTH.</span>
-        <h1>Small actions, real momentum<span class="greeting-dot">.</span></h1>
-        <p>Every number comes from your own story. Nothing made up.</p>
+        <span class="eyebrow">THE BIGGER PICTURE</span>
+        <h1>Your habit insights<span class="greeting-dot">.</span></h1>
+        <p>Understand your patterns and find a rhythm that lasts.</p>
       </div>
       <span class="pill"><span class="tiny-dot"></span>All time & recent insights</span>
     </div>
